@@ -10,7 +10,9 @@ node_modules/
 .DS_Store
 .vercel
 logs/
-data/
+# Downloaded datasets and generated crops live at the repo root.
+# Do not use a bare `data/` rule: it also ignores ml/data, which is source.
+/data/
 ml/.venv/
 ml/eval/cache/
 ml/logs/
