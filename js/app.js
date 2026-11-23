@@ -5,16 +5,18 @@
   const i18n = window.ShelloI18n;
   const t = function (key, vars) { return i18n.t(key, vars); };
 
-  const QUIZ_TOTAL = 6;
+  const QUIZ_TOTAL = 7;
   const STEP = {
     landing: 0,
     skin: 1,
     concerns: 2,
-    area: 3,
-    climate: 4,
-    budget: 5,
-    selfie: 6,
-    result: 7,
+    safety: 3,
+    area: 4,
+    climate: 5,
+    budget: 6,
+    selfie: 7,
+    confirm: 8,
+    result: 9,
   };
 
   function skinTypes() {
@@ -71,6 +73,7 @@
       { id: "often", title: t("climate_outdoors_often") },
       { id: "sometimes", title: t("climate_outdoors_sometimes") },
       { id: "rarely", title: t("climate_outdoors_rarely") },
+      { id: "not_sure", title: t("not_sure") },
     ];
   }
 
@@ -80,19 +83,27 @@
     quiz: {
       skin_type: null,
       concerns: [],
-      area: "face",
-      budget: "everyday",
+      area: null,
+      budget: null,
       red_flags: [],
       climate: null,
       outdoors: null,
     },
-    selfie: { file: null, dataUrl: null, observations: null, analyzed: false },
+    selfie: { file: null, dataUrl: null, observations: null, analyzed: false, meta: null },
+    quality: { status: "idle", ran: false, pass: null, reasons: [], metrics: {}, retakes: 0, face_check: null },
+    confirm: null,
+    confirmObs: null,
+    feedback: {},
+    resultLogged: false,
+    deleted: false,
     camera: { phase: "idle", fallback: false, message: null },
     analysisAvailable: false,
     analysisProvider: null,
+    deviceReaderPct: 0,
     result: null,
     resultSource: "quiz",
-    cartFollowup: [],
+    added: {},
+    safetyNone: false,
     concernLimitNote: false,
     analysisNote: null,
   };
@@ -118,9 +129,29 @@
       const data = await res.json();
       state.analysisAvailable = Boolean(data.analysis_available);
       state.analysisProvider = data.provider || null;
+      state.deviceReaderPct = Number(data.device_reader_pct) || 0;
     } catch {
       state.analysisAvailable = false;
     }
+  }
+
+  // ?reader=device forces the on-device reader, ?reader=cloud disables it;
+  // otherwise a per-tab random bucket (no persistent ID) vs DEVICE_READER_PCT.
+  function deviceReaderEnabled() {
+    if (!window.ShelloSkinReader) return false;
+    const forced = new URLSearchParams(location.search).get("reader");
+    if (forced === "device") return true;
+    if (forced === "cloud") return false;
+    let bucket = Number(sessionStorage.getItem("shello_reader_bucket"));
+    if (!(bucket >= 0 && bucket < 100)) {
+      bucket = Math.floor(Math.random() * 100);
+      try { sessionStorage.setItem("shello_reader_bucket", String(bucket)); } catch (_) {}
+    }
+    return bucket < state.deviceReaderPct;
+  }
+
+  function selfieAnalysisPossible() {
+    return state.analysisAvailable || deviceReaderEnabled();
   }
 
   function renderChrome() {
@@ -233,15 +264,32 @@
     const next = `<button type="button" class="btn btn-primary" id="btn-next" ${
       opts.nextDisabled ? "disabled" : ""
     }>${opts.nextLabel || t("continue")}</button>`;
-    return `<div class="actions">${back}${next}</div>`;
+    const hint = opts.nextDisabled && opts.hint
+      ? `<p class="hint" id="next-hint" role="status">${opts.hint}</p>`
+      : "";
+    return `<div class="actions">${back}${next}</div>${hint}`;
   }
 
   function stepKicker(n) {
     return `<p class="step-kicker">${t("step_of", { n: n, total: QUIZ_TOTAL })}</p>`;
   }
 
+  // One plain line; the full notice sits behind "Details".
   function privacyBlock() {
-    return `<p class="privacy-note">${t("privacy_note")}</p>`;
+    const full = t(deviceReaderEnabled() ? "privacy_note_device" : "privacy_note");
+    return `
+      <details class="privacy">
+        <summary><span>${t("privacy_short")}</span> <span class="privacy-more">${t("privacy_details")}</span></summary>
+        <p>${full}</p>
+      </details>`;
+  }
+
+  const STEP_NAMES = ["landing", "skin", "concerns", "safety", "area", "climate", "budget", "scan", "confirm", "result"];
+  let lastLoggedStep = null;
+  function logStepView() {
+    if (state.step === lastLoggedStep) return;
+    lastLoggedStep = state.step;
+    if (window.ShelloEvents) window.ShelloEvents.send("step_view", { step: STEP_NAMES[state.step] });
   }
 
   function render() {
@@ -251,110 +299,113 @@
       renderLanding,
       renderSkin,
       renderConcerns,
+      renderSafety,
       renderArea,
       renderClimate,
       renderBudget,
       renderSelfie,
+      renderConfirm,
       renderResult,
     ];
     panel.innerHTML = steps[Math.min(state.step, STEP.result)]();
+    const intro = document.getElementById("intro");
+    if (intro) intro.classList.toggle("hidden", state.step !== STEP.landing);
+    logStepView();
     bind();
     bindSafeImages(document);
   }
 
   function renderLanding() {
     const kits = state.catalog ? matcher.readyKits(state.catalog) : [];
-    const kitHtml = kits
-      .map((kit) => {
-        const items = kit.steps
-          .map((s) => {
-            const bits = [s.name];
-            if (s.size) bits.push(s.size);
-            bits.push(s.price_label);
-            return `<li>${bits.join(" · ")}</li>`;
-          })
-          .join("");
-        return `
-          <article class="kit-card" data-kit="${kit.id}">
-            <h3>${t("kit_" + kit.id)}</h3>
-            <p class="lede">${t("kit_" + kit.id + "_note")}</p>
-            <ul class="kit-items">${items}</ul>
-            <div class="kit-total"><span>${t("kit_total")}</span><span>${kit.total_label}</span></div>
-            <div class="kit-actions">
-              <button type="button" class="btn btn-ghost btn-view-kit" data-kit="${kit.id}">${t("view_kit")}</button>
-              ${kit.steps.length ? `<button type="button" class="btn btn-primary btn-add-all" data-kit="${kit.id}">${t("add_all")}</button>` : ""}
-            </div>
-          </article>`;
-      })
+    const chips = kits
+      .map((kit) => `<button type="button" class="chip btn-view-kit" data-kit="${kit.id}">${t("kit_" + kit.id)} <span class="chip-price">${kit.total_label}</span></button>`)
       .join("");
     return `
-      ${privacyBlock()}
-      <div class="actions">
-        <button type="button" class="btn btn-primary" id="btn-start-quiz">${t("start_quiz")}</button>
+      <div class="hero-actions">
+        <button type="button" class="btn btn-primary btn-lg" id="btn-start-quiz">${t("start_quiz")}</button>
+        ${privacyBlock()}
       </div>
-      <section class="kits" id="ready-kits">
-        <h2>${t("kits_title")}</h2>
-        <p class="lede">${t("kits_lede")}</p>
-        <div class="kit-grid">${kitHtml}</div>
-      </section>
+      ${kits.length ? `
+      <section class="kits" id="ready-kits" aria-labelledby="kits-title">
+        <h2 class="kits-title" id="kits-title">${t("kits_or")}</h2>
+        <div class="chip-row">${chips}</div>
+      </section>` : ""}
     `;
   }
 
   function renderSkin() {
     return `
-      ${stepKicker(1)}
+      ${stepKicker(STEP.skin)}
       <h2>${t("skin_title")}</h2>
       <p class="lede">${t("skin_lede")}</p>
       <div class="options two" id="opts">${optionButton(skinTypes(), { selected: state.quiz.skin_type })}</div>
-      ${actions({ back: true, backLabel: t("back_to_start"), nextDisabled: !state.quiz.skin_type })}
+      ${actions({ back: true, backLabel: t("back_to_start"), nextDisabled: !state.quiz.skin_type, hint: t("choose_one") })}
     `;
   }
 
   function renderConcerns() {
     return `
-      ${stepKicker(2)}
+      ${stepKicker(STEP.concerns)}
       <h2>${t("concerns_title")}</h2>
       <p class="lede">${t("concerns_lede")}</p>
       ${state.concernLimitNote ? `<p class="note" id="concern-limit">${t("concerns_limit")}</p>` : ""}
       <div class="options two" id="opts">${optionButton(concerns(), { selected: state.quiz.concerns, multi: true })}</div>
-      <div id="red-flags">
-        <h3>${t("red_flags_title")}</h3>
-        <p class="lede">${t("red_flags_lede")}</p>
-        <div class="options two" id="flags">${optionButton(redFlags(), { selected: state.quiz.red_flags, multi: true })}</div>
-      </div>
       ${actions({ back: true, nextLabel: t("continue") })}
+    `;
+  }
+
+  // Its own step so the safety check is never skimmed past.
+  function renderSafety() {
+    const selected = state.safetyNone ? ["none"] : state.quiz.red_flags;
+    const opts = redFlags().concat([{ id: "none", title: t("safety_none") }]);
+    return `
+      ${stepKicker(STEP.safety)}
+      <h2 id="red-flags-title">${t("red_flags_title")}</h2>
+      <p class="lede">${t("red_flags_lede")}</p>
+      <div class="options two" id="flags">${optionButton(opts, { selected })}</div>
+      ${actions({ back: true, nextDisabled: !state.safetyNone && !state.quiz.red_flags.length, hint: t("choose_one") })}
     `;
   }
 
   function renderArea() {
     return `
-      ${stepKicker(3)}
+      ${stepKicker(STEP.area)}
       <h2>${t("area_title")}</h2>
       <div class="options" id="opts">${optionButton(areas(), { selected: state.quiz.area })}</div>
-      ${actions({ back: true, nextDisabled: !state.quiz.area })}
+      ${actions({ back: true, nextDisabled: !state.quiz.area, hint: t("choose_one") })}
     `;
   }
 
   function renderClimate() {
+    const q = state.quiz;
+    const hint = !q.climate && !q.outdoors
+      ? t("climate_missing_both")
+      : !q.climate ? t("climate_missing_air") : t("climate_missing_sun");
     return `
-      ${stepKicker(4)}
+      ${stepKicker(STEP.climate)}
       <h2>${t("climate_title")}</h2>
       <p class="lede">${t("climate_lede")}</p>
       <h3 class="subq">${t("climate_air_title")}</h3>
-      <div class="options" id="opts-climate">${optionButton(climateAir(), { selected: state.quiz.climate })}</div>
+      <div class="options two" id="opts-climate">${optionButton(climateAir(), { selected: q.climate })}</div>
       <h3 class="subq">${t("climate_outdoors_title")}</h3>
-      <div class="options" id="opts-outdoors">${optionButton(climateOutdoors(), { selected: state.quiz.outdoors })}</div>
-      ${actions({ back: true, nextDisabled: !state.quiz.climate || !state.quiz.outdoors })}
+      <div class="options two" id="opts-outdoors">${optionButton(climateOutdoors(), { selected: q.outdoors })}</div>
+      ${actions({ back: true, nextDisabled: !q.climate || !q.outdoors, hint })}
     `;
   }
 
   function renderBudget() {
+    const opts = budgetOptions();
+    const notes = opts.filter((o) => o.note).map((o) => `<li><strong>${escapeHtml(o.title)}</strong> — ${o.note}</li>`).join("");
     return `
-      ${stepKicker(5)}
+      ${stepKicker(STEP.budget)}
       <h2>${t("budget_title")}</h2>
-      <p class="lede">${t("budget_lede")}</p>
-      <div class="options" id="opts">${optionButton(budgetOptions(), { selected: state.quiz.budget })}</div>
-      ${actions({ back: true, nextDisabled: !state.quiz.budget })}
+      <div class="options" id="opts">${optionButton(opts.map((o) => ({ id: o.id, title: o.title })), { selected: state.quiz.budget })}</div>
+      <details class="more">
+        <summary>${t("budget_how")}</summary>
+        <p>${t("budget_lede")}</p>
+        ${notes ? `<ul>${notes}</ul>` : ""}
+      </details>
+      ${actions({ back: true, nextDisabled: !state.quiz.budget, hint: t("choose_one") })}
     `;
   }
 
@@ -370,7 +421,7 @@
   }
 
   function renderSelfie() {
-    const available = state.analysisAvailable;
+    const available = selfieAnalysisPossible();
     const phase = state.camera.phase;
     const inCamera = phase === "live" || phase === "review";
     const copy = available ? t("selfie_lede") : t("selfie_lede_unavailable");
@@ -401,7 +452,7 @@
         ${privacyBlock()}
         ${selfieTips()}
         <div class="selfie-actions">
-          <button type="button" class="btn btn-primary" id="btn-take-selfie">${t("take_selfie")}</button>
+          <button type="button" class="btn btn-ghost" id="btn-take-selfie">${t("take_selfie")}</button>
           <button type="button" class="btn btn-ghost" id="btn-upload-photo">${t("upload_photo")}</button>
         </div>
         <input id="selfie-upload" class="visually-hidden" type="file" accept="image/*" />
@@ -419,6 +470,7 @@
               </div>`
             : ""
         }
+        ${qualityStatusHtml()}
         ${
           !available && state.selfie.dataUrl
             ? `<p class="note">${t("photo_device_only")}</p>`
@@ -426,7 +478,7 @@
         }`;
     }
     return `
-      ${stepKicker(6)}
+      ${stepKicker(STEP.selfie)}
       <h2>${t("selfie_title")}</h2>
       <p class="lede">${copy}</p>
       <div class="selfie-box">
@@ -434,6 +486,32 @@
       </div>
       ${inCamera ? "" : actions({ back: true, nextLabel: t("see_routine") })}
     `;
+  }
+
+  function qualityStatusHtml() {
+    if (!state.selfie.dataUrl) return "";
+    const q = state.quality;
+    if (q.status === "checking") {
+      return `<p class="note" id="quality-status">${t("quality_checking")}</p>`;
+    }
+    if (q.status === "pass") {
+      return `<p class="note quality-ok" id="quality-status">${t("quality_ok")}</p>`;
+    }
+    if (q.status === "fail") {
+      const items = (q.reasons || [])
+        .map((r) => `<li>${t("quality_" + r)}</li>`)
+        .join("");
+      return `
+        <div class="alert alert-warn" id="quality-status">
+          <strong>${t("quality_fail_title")}</strong>
+          <ul>${items}</ul>
+          <div class="selfie-actions">
+            <button type="button" class="btn btn-ghost" id="btn-retake-quality">${t("retake")}</button>
+            <button type="button" class="btn btn-ghost" id="btn-continue-no-photo">${t("continue_without_photo")}</button>
+          </div>
+        </div>`;
+    }
+    return "";
   }
 
   function variantMeta(step) {
@@ -475,47 +553,70 @@
         const h = Number(s.image_height) || 300;
         const img = s.image
           ? `<img src="${escapeHtml(s.image)}" alt="${alt}" width="${w}" height="${h}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" data-hide-on-error="1" />`
-          : `<div></div>`;
+          : "";
         const reason = s.reason
           ? `<p class="reason"><span class="reason-label">${t("reason_label")}</span> ${s.reason}</p>`
           : "";
+        const fb = state.feedback[s.id] || null;
+        const add = state.added[s.id]
+          ? `<span class="btn btn-added" aria-live="polite">${t("added_to_cart")}</span>`
+          : `<a class="btn btn-ghost btn-add-item" data-product-id="${s.id}" href="${matcher.addToCartUrl(s)}" target="shello-cart" rel="noopener">${t("add_to_cart")}</a>`;
         return `
           <article class="product" data-product-id="${s.id}">
-            ${img}
-            <div>
+            <div class="product-img">${img}</div>
+            <div class="product-body">
               <div class="step-name">${s.label}</div>
               <h3>${s.name}</h3>
               <div class="meta">${variantMeta(s)}</div>
+              ${fitLine(s.fit)}
               ${reason}
-              <a class="buy" href="${s.permalink}" target="_blank" rel="noopener">${t("view_product")}</a>
+              <div class="product-actions">
+                ${add}
+                <a class="buy" href="${s.permalink}" target="_blank" rel="noopener" data-product-id="${s.id}">${t("view_product")}</a>
+                <span class="feedback">
+                  <button type="button" class="thumb" data-pid="${s.id}" data-val="up"
+                    aria-pressed="${fb === "up"}" aria-label="${t("thumb_up")}">${ICON_UP}</button>
+                  <button type="button" class="thumb" data-pid="${s.id}" data-val="down"
+                    aria-pressed="${fb === "down"}" aria-label="${t("thumb_down")}">${ICON_DOWN}</button>
+                </span>
+              </div>
             </div>
           </article>`;
       })
       .join("");
   }
 
+  // Lucide thumbs-up / thumbs-down (ISC licence), inline so no icon font loads.
+  const ICON_UP = '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+  const ICON_DOWN = '<svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+
+  function fitLine(fit) {
+    if (!fit || !fit.length) return "";
+    const bits = fit.map((f) => {
+      const [kind, id] = f.split(":");
+      return kind === "skin" ? t("fit_skin", { type: t("skin_" + id).toLowerCase() }) : concernLabel(id).toLowerCase();
+    });
+    return `<p class="fit">${t("fit_label")} ${escapeHtml(bits.join(" · "))}</p>`;
+  }
+
+  function resultSummary(quiz) {
+    if (!quiz) return "";
+    const type = quiz.skin_type ? t("skin_" + quiz.skin_type) : null;
+    const cs = (quiz.concerns || []).map((c) => concernLabel(c).toLowerCase()).join(", ");
+    const line = type && cs ? t("summary_full", { type, concerns: cs })
+      : type ? t("summary_type", { type }) : cs ? t("summary_concerns", { concerns: cs }) : "";
+    return line ? `<p class="summary">${escapeHtml(line)}</p>` : "";
+  }
+
   function bundleActions(steps, totalLabel, opts) {
     if (!steps || !steps.length) return "";
-    const follow = state.cartFollowup || [];
-    const followHtml = follow.length
-      ? `<div class="cart-followup">
-          <p class="note">${t("add_remaining")}</p>
-          ${follow
-            .map(
-              (s) =>
-                `<a class="btn btn-ghost" href="${matcher.addToCartUrl(s)}" target="shello-cart" rel="noopener">${t("add_item", { name: s.name + (s.size ? " · " + s.size : "") })}</a>`
-            )
-            .join("")}
-        </div>`
-      : `<p class="note">${t("add_all_note")}</p>`;
     const wa = whatsAppUrl(steps, totalLabel);
     return `
       <div class="total"><span>${opts && opts.kit ? t("kit_total") : t("routine_total")}</span><span>${totalLabel}</span></div>
+      <p class="note">${t("cart_note")}</p>
       <div class="bundle-actions" id="bundle-actions">
-        <button type="button" class="btn btn-primary" id="btn-add-all">${t("add_all")}</button>
         <a class="btn btn-whatsapp" id="btn-whatsapp" href="${wa}" target="_blank" rel="noopener">${t("send_whatsapp")}</a>
       </div>
-      ${followHtml}
     `;
   }
 
@@ -534,6 +635,136 @@
     return "https://wa.me/94741169600?text=" + encodeURIComponent(lines.join("\n"));
   }
 
+  function concernLabel(id) {
+    return t("concern_" + id) || id;
+  }
+
+  function renderConfirm() {
+    const c = state.confirm;
+    if (!c) return "";
+    if (c.editing) {
+      const typeOpts = skinTypes().concat([{ id: "not_sure", title: t("confirm_not_sure"), note: "" }]);
+      return `
+        <h2>${t("confirm_title")}</h2>
+        <h3 class="subq">${t("confirm_change_type")}</h3>
+        <div class="options two" id="confirm-types">${optionButton(typeOpts, {
+          selected: c.corrected_skin_type || "not_sure",
+        })}</div>
+        <h3 class="subq">${t("confirm_change_concerns")}</h3>
+        ${c.limitNote ? `<p class="note">${t("concerns_limit")}</p>` : ""}
+        <div class="options two" id="confirm-concerns">${optionButton(concerns(), {
+          selected: c.corrected_concerns,
+        })}</div>
+        ${actions({ back: true, nextLabel: t("see_routine") })}
+      `;
+    }
+    const typeLabel = c.read_skin_type ? t("skin_" + c.read_skin_type) : null;
+    const concernLabels = (c.read_concerns || []).map(concernLabel).join(", ");
+    const read =
+      typeLabel && concernLabels
+        ? t("confirm_read_full", { type: typeLabel, concerns: concernLabels })
+        : typeLabel
+          ? t("confirm_read_type", { type: typeLabel })
+          : t("confirm_read_concerns", { concerns: concernLabels });
+    return `
+      <h2>${t("confirm_title")}</h2>
+      <p class="lede">${read}</p>
+      <div class="actions">
+        <button type="button" class="btn btn-ghost" id="btn-back">${t("back")}</button>
+        <button type="button" class="btn btn-primary" id="btn-confirm-yes">${t("confirm_yes")}</button>
+        <button type="button" class="btn btn-ghost" id="btn-confirm-change">${t("confirm_change")}</button>
+      </div>
+    `;
+  }
+
+  function finishToResult(observations) {
+    const quiz = matcher.mergeQuizWithObservations(state.quiz, observations);
+    state.quiz = quiz;
+    const result = attachVariantLabels(matcher.recommend(state.catalog, quiz));
+    state.result = result;
+    state.resultSource = "quiz";
+    state.activeKit = null;
+    state.selfie.observations = observations;
+    state.step = STEP.result;
+    logSessionResult(result, quiz, observations);
+    render();
+  }
+
+  function readerEvent(observations) {
+    const meta = state.selfie.meta || {};
+    const obs = observations || state.selfie.observations || {};
+    return {
+      source: meta.provider || "none",
+      provider: meta.provider || undefined,
+      model: meta.model || undefined,
+      prompt_version: meta.prompt_version || undefined,
+      skin_type: obs.skin_type_hint || undefined,
+      concerns: obs.concerns || [],
+      confidence: obs.confidence || undefined,
+      latency_ms: meta.latency_ms || undefined,
+      fallback_reason: meta.fallback_reason || undefined,
+      device_confidence: meta.confidence == null ? undefined : meta.confidence,
+    };
+  }
+
+  function confirmEvent() {
+    const c = state.confirm;
+    if (!c || !c.action) return { action: "skipped" };
+    return {
+      action: c.action,
+      read_skin_type: c.read_skin_type || undefined,
+      read_concerns: c.read_concerns || [],
+      corrected_skin_type: c.action === "correct" ? c.corrected_skin_type || undefined : undefined,
+      corrected_concerns: c.action === "correct" ? c.corrected_concerns || [] : [],
+    };
+  }
+
+  function qualityEvent() {
+    const q = state.quality;
+    return {
+      ran: q.ran,
+      pass: q.pass == null ? undefined : q.pass,
+      reasons: q.reasons || [],
+      retakes: q.retakes || 0,
+      face_check: q.face_check || undefined,
+    };
+  }
+
+  function stripUndef(obj) {
+    const out = {};
+    for (const k in obj) if (obj[k] !== undefined) out[k] = obj[k];
+    return out;
+  }
+
+  function logSessionResult(result, mergedQuiz, observations) {
+    if (!window.ShelloEvents || state.resultLogged === result) return;
+    state.resultLogged = result;
+    const isKit = state.resultSource === "kit";
+    window.ShelloEvents.send(
+      "session_result",
+      stripUndef({
+        lang: i18n.getLang(),
+        result_source: state.resultSource,
+        kit_id: isKit ? state.activeKit : undefined,
+        quiz: {
+          skin_type: mergedQuiz ? mergedQuiz.skin_type : state.quiz.skin_type,
+          concerns: mergedQuiz ? mergedQuiz.concerns : state.quiz.concerns,
+          area: state.quiz.area,
+          budget: state.quiz.budget,
+          climate: state.quiz.climate,
+          outdoors: state.quiz.outdoors,
+          red_flags: state.quiz.red_flags || [],
+        },
+        merged_concerns: mergedQuiz ? mergedQuiz.concerns : state.quiz.concerns,
+        reader: stripUndef(readerEvent(observations)),
+        quality: stripUndef(qualityEvent()),
+        confirm: stripUndef(confirmEvent()),
+        routine_product_ids: ((result && result.steps) || []).map((s) => s.id).filter((n) => Number.isInteger(n)),
+        dermatologist_note: Boolean(result && result.dermatologist_note),
+      })
+    );
+  }
+
   function renderResult() {
     const raw = state.result;
     if (!raw) return `<p>${t("building")}</p>`;
@@ -542,8 +773,7 @@
       return `
         <h2>${result.title}</h2>
         <div class="alert alert-danger">${result.message}</div>
-        <p class="disclaimer">${t("footer")}</p>
-        <div class="actions">
+          <div class="actions">
           <button type="button" class="btn btn-ghost" id="btn-restart">${t("start_again")}</button>
         </div>
       `;
@@ -560,12 +790,16 @@
         : "";
     const isKit = state.resultSource === "kit";
     return `
+      ${isKit ? "" : resultSummary(state.quiz)}
       <h2>${isKit && state.activeKit ? t("kit_" + state.activeKit) : result.title}</h2>
       <p class="lede">${isKit && state.activeKit ? t("kit_" + state.activeKit + "_note") : result.message}</p>
       ${obsHtml}
       <div class="routine-list">${productList(result.steps)}</div>
       ${bundleActions(result.steps, result.total_label, { kit: isKit })}
-      <p class="disclaimer">${t("footer")}</p>
+      <div class="anon-footer">
+        <span class="anon-code">${t("anonymous_code")}: ${window.ShelloEvents ? window.ShelloEvents.code() : "--------"}</span>
+        ${state.deleted ? `<span class="note">${t("delete_answers_done")}</span>` : `<button type="button" class="btn-link" id="btn-delete-answers">${t("delete_answers")}</button>`}
+      </div>
       <div class="actions">
         ${
           isKit
@@ -700,6 +934,76 @@
     }
     state.selfie.observations = null;
     state.selfie.analyzed = false;
+    state.selfie.meta = null;
+    runQualityCheck(scaled);
+  }
+
+  function resetQuality(keepRetakes) {
+    state.quality = {
+      status: "idle",
+      ran: false,
+      pass: null,
+      reasons: [],
+      metrics: {},
+      retakes: keepRetakes ? state.quality.retakes : 0,
+      face_check: null,
+    };
+  }
+
+  async function runQualityCheck(file) {
+    state.quality = {
+      status: "checking",
+      ran: false,
+      pass: null,
+      reasons: [],
+      metrics: {},
+      retakes: state.quality.retakes,
+      face_check: null,
+    };
+    try {
+      const bmp = await createImageBitmap(file);
+      const canvas = document.createElement("canvas");
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
+      canvas.getContext("2d").drawImage(bmp, 0, 0);
+      // Face detection loads lazily here — only once a photo exists.
+      const face = window.ShelloFace ? await window.ShelloFace.detect(canvas) : null;
+      if (state.selfie.file !== file) return; // a different photo was picked
+      const res = await window.ShelloQuality.check(canvas, face);
+      try { bmp.close && bmp.close(); } catch (_) {}
+      // Landmarks stay in memory only, for the on-device reader.
+      state.selfie.landmarks = face && face.faces === 1 ? face.landmarks : null;
+      if (res.pass && deviceReaderEnabled()) window.ShelloSkinReader.load();
+      state.quality = {
+        status: res.pass ? "pass" : "fail",
+        ran: true,
+        pass: res.pass,
+        reasons: res.reasons,
+        metrics: res.metrics || {},
+        retakes: state.quality.retakes,
+        face_check: (res.metrics || {}).face_check || null,
+      };
+    } catch (_) {
+      if (state.selfie.file !== file) return;
+      // A broken gate must not block the photo; checks count as unavailable.
+      state.quality = {
+        status: "pass",
+        ran: true,
+        pass: true,
+        reasons: [],
+        metrics: { face_check: "unavailable" },
+        retakes: state.quality.retakes,
+        face_check: "unavailable",
+      };
+    }
+    if (state.step === STEP.selfie) render();
+  }
+
+  function clearSelfie(keepRetakes) {
+    if (state.selfie.dataUrl) URL.revokeObjectURL(state.selfie.dataUrl);
+    state.selfie = { file: null, dataUrl: null, observations: null, analyzed: false, meta: null };
+    state.analysisNote = null;
+    resetQuality(keepRetakes);
   }
 
   function downscaleToJpeg(blobOrFile, maxSize, quality) {
@@ -752,14 +1056,6 @@
     return result;
   }
 
-  function openAddAll(steps) {
-    if (!steps || !steps.length) return;
-    const first = matcher.addToCartUrl(steps[0]);
-    window.open(first, "shello-cart");
-    state.cartFollowup = steps.slice(1);
-    render();
-  }
-
   function showKit(kitId) {
     const kits = matcher.readyKits(state.catalog);
     const kit = kits.find((k) => k.id === kitId);
@@ -767,8 +1063,8 @@
     state.result = attachVariantLabels(kit.result);
     state.resultSource = "kit";
     state.activeKit = kitId;
-    state.cartFollowup = [];
     state.step = STEP.result;
+    logSessionResult(state.result, null, null);
     render();
   }
 
@@ -779,15 +1075,22 @@
     state.result = null;
     state.resultSource = "quiz";
     state.activeKit = null;
-    state.cartFollowup = [];
     state.concernLimitNote = false;
-    state.selfie = { file: null, dataUrl: null, observations: null, analyzed: false };
+    state.added = {};
+    state.safetyNone = false;
+    state.selfie = { file: null, dataUrl: null, observations: null, analyzed: false, meta: null };
+    resetQuality(false);
+    state.confirm = null;
+    state.confirmObs = null;
+    state.feedback = {};
+    state.resultLogged = false;
+    state.deleted = false;
     state.analysisNote = null;
     state.quiz = {
       skin_type: null,
       concerns: [],
-      area: "face",
-      budget: "everyday",
+      area: null,
+      budget: null,
       red_flags: [],
       climate: null,
       outdoors: null,
@@ -803,18 +1106,46 @@
     panel.querySelectorAll(".btn-view-kit").forEach((btn) => {
       btn.addEventListener("click", () => showKit(btn.getAttribute("data-kit")));
     });
-    panel.querySelectorAll(".btn-add-all").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const kitId = btn.getAttribute("data-kit");
-        const kits = matcher.readyKits(state.catalog);
-        const kit = kits.find((k) => k.id === kitId);
-        if (kit) openAddAll(kit.steps);
+    panel.querySelectorAll(".btn-add-item").forEach((a) => {
+      a.addEventListener("click", () => {
+        if (window.ShelloEvents)
+          window.ShelloEvents.send("add_to_cart", {
+            product_ids: [Number(a.getAttribute("data-product-id"))],
+            kind: "add_item",
+            source: state.resultSource === "kit" ? "kit" : "quiz",
+          });
+        state.added[a.getAttribute("data-product-id")] = true;
+        setTimeout(render, 0); // let the link open the cart tab first
       });
     });
-    const addAll = panel.querySelector("#btn-add-all");
-    if (addAll) addAll.addEventListener("click", () => {
-      const steps = (state.result && state.result.steps) || [];
-      openAddAll(steps);
+    panel.querySelectorAll("a.buy").forEach((a) => {
+      a.addEventListener("click", () => {
+        if (window.ShelloEvents)
+          window.ShelloEvents.send("click", {
+            product_id: Number(a.getAttribute("data-product-id")),
+            kind: "view_product",
+          });
+      });
+    });
+    const wa = panel.querySelector("#btn-whatsapp");
+    if (wa) wa.addEventListener("click", () => {
+      if (window.ShelloEvents) window.ShelloEvents.send("click", { kind: "whatsapp" });
+    });
+    panel.querySelectorAll(".thumb").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pid = Number(btn.getAttribute("data-pid"));
+        const val = btn.getAttribute("data-val");
+        state.feedback[pid] = state.feedback[pid] === val ? null : val;
+        if (state.feedback[pid] && window.ShelloEvents)
+          window.ShelloEvents.send("product_feedback", { product_id: pid, value: val });
+        render();
+      });
+    });
+    const delBtn = panel.querySelector("#btn-delete-answers");
+    if (delBtn) delBtn.addEventListener("click", async () => {
+      if (window.ShelloEvents) await window.ShelloEvents.forget();
+      state.deleted = true;
+      render();
     });
 
     const opts = panel.querySelector("#opts");
@@ -848,9 +1179,15 @@
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-id");
           const arr = state.quiz.red_flags;
-          const idx = arr.indexOf(id);
-          if (idx >= 0) arr.splice(idx, 1);
-          else arr.push(id);
+          if (id === "none") {
+            arr.length = 0;
+            state.safetyNone = !state.safetyNone;
+          } else {
+            state.safetyNone = false;
+            const idx = arr.indexOf(id);
+            if (idx >= 0) arr.splice(idx, 1);
+            else arr.push(id);
+          }
           render();
         });
       });
@@ -881,12 +1218,10 @@
         state.result = null;
         state.resultSource = "quiz";
         state.activeKit = null;
-        state.cartFollowup = [];
-        state.step = STEP.landing;
+            state.step = STEP.landing;
       } else if (state.step === STEP.result) {
         state.step = STEP.budget;
-        state.cartFollowup = [];
-      } else if (state.step > 0) {
+          } else if (state.step > 0) {
         state.step -= 1;
       }
       render();
@@ -955,10 +1290,67 @@
     const clear = panel.querySelector("#btn-clear-selfie");
     if (clear) {
       clear.addEventListener("click", () => {
-        if (state.selfie.dataUrl) URL.revokeObjectURL(state.selfie.dataUrl);
-        state.selfie = { file: null, dataUrl: null, observations: null, analyzed: false };
-        state.analysisNote = null;
+        clearSelfie(false);
         render();
+      });
+    }
+    const retakeQ = panel.querySelector("#btn-retake-quality");
+    if (retakeQ) {
+      retakeQ.addEventListener("click", () => {
+        state.quality.retakes += 1;
+        clearSelfie(true);
+        render();
+      });
+    }
+    const noPhoto = panel.querySelector("#btn-continue-no-photo");
+    if (noPhoto) {
+      noPhoto.addEventListener("click", () => {
+        clearSelfie(true);
+        render();
+      });
+    }
+    const confirmYes = panel.querySelector("#btn-confirm-yes");
+    if (confirmYes) {
+      confirmYes.addEventListener("click", () => {
+        if (state.confirm) state.confirm.action = "confirm";
+        finishToResult(state.confirmObs);
+      });
+    }
+    const confirmChange = panel.querySelector("#btn-confirm-change");
+    if (confirmChange) {
+      confirmChange.addEventListener("click", () => {
+        if (state.confirm) state.confirm.editing = true;
+        render();
+      });
+    }
+    const cTypes = panel.querySelector("#confirm-types");
+    if (cTypes) {
+      cTypes.querySelectorAll(".choice").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          state.confirm.corrected_skin_type = id === "not_sure" ? null : id;
+          render();
+        });
+      });
+    }
+    const cConcerns = panel.querySelector("#confirm-concerns");
+    if (cConcerns) {
+      cConcerns.querySelectorAll(".choice").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          const arr = state.confirm.corrected_concerns;
+          const idx = arr.indexOf(id);
+          if (idx >= 0) {
+            arr.splice(idx, 1);
+            state.confirm.limitNote = false;
+          } else if (arr.length >= 2) {
+            state.confirm.limitNote = true;
+          } else {
+            arr.push(id);
+            state.confirm.limitNote = false;
+          }
+          render();
+        });
       });
     }
     attachLivePreview();
@@ -1006,10 +1398,34 @@
     return false;
   }
 
-  async function maybeAnalyzeSelfie() {
-    if (!state.analysisAvailable || !state.selfie.file || state.selfie.analyzed) {
-      return state.selfie.observations;
+  // Normal path: read on the phone. Gemini only when the device reader fails
+  // to load/run or is not confident (and Gemini is configured).
+  async function readOnDevice() {
+    try {
+      const bmp = await createImageBitmap(state.selfie.file);
+      const res = await window.ShelloSkinReader.read(bmp, state.selfie.landmarks);
+      try { bmp.close && bmp.close(); } catch (_) {}
+      return res;
+    } catch (_) {
+      return null;
     }
+  }
+
+  async function maybeAnalyzeSelfie() {
+    if (!state.selfie.file || state.selfie.analyzed) return state.selfie.observations;
+    let fallbackReason = null;
+    if (deviceReaderEnabled()) {
+      const dev = await readOnDevice();
+      if (dev && (dev.confident || !state.analysisAvailable)) {
+        state.selfie.analyzed = true;
+        state.selfie.observations = dev.observations;
+        state.selfie.meta = dev.meta;
+        state.analysisNote = null;
+        return dev.observations;
+      }
+      fallbackReason = dev ? "low_confidence" : "device_failed";
+    }
+    if (!state.analysisAvailable) return state.selfie.observations;
     state.analysisNote = null;
     try {
       let file = state.selfie.file;
@@ -1038,12 +1454,20 @@
       if (lastErr || !resp || !resp.ok) {
         state.selfie.analyzed = true;
         state.selfie.observations = null;
+        state.selfie.meta = null;
         state.analysisNote = "fallback";
         return null;
       }
       const data = await resp.json().catch(() => ({}));
       state.selfie.analyzed = true;
       state.selfie.observations = (data && data.observations) || null;
+      state.selfie.meta = {
+        provider: (data && data.provider) || null,
+        model: (data && data.model) || null,
+        prompt_version: (data && data.prompt_version) || null,
+        latency_ms: (data && data.latency_ms) || null,
+        fallback_reason: fallbackReason,
+      };
       if (!state.selfie.observations) {
         state.analysisNote = "fallback";
       }
@@ -1051,30 +1475,64 @@
     } catch (_) {
       state.selfie.analyzed = true;
       state.selfie.observations = null;
+      state.selfie.meta = null;
       state.analysisNote = "fallback";
       return null;
     }
   }
 
   async function onNext() {
+    if (state.step === STEP.confirm) {
+      const c = state.confirm;
+      if (c && c.editing) {
+        c.action = "correct";
+        const corrected = Object.assign({}, state.confirmObs || {}, {
+          skin_type_hint: c.corrected_skin_type || null,
+          concerns: c.corrected_concerns || [],
+        });
+        finishToResult(corrected);
+      }
+      return;
+    }
     if (state.step < STEP.selfie) {
       state.step += 1;
       render();
       return;
     }
     if (state.step === STEP.selfie) {
+      // A photo that is still being checked or failed the gate blocks
+      // progression — the shopper must retake or use "Continue without photo".
+      if (
+        state.selfie.file &&
+        (state.quality.status === "checking" || state.quality.status === "fail")
+      ) {
+        return;
+      }
       panel.querySelector("#btn-next") && (panel.querySelector("#btn-next").disabled = true);
       leaveSelfieStep();
-      const observations = await maybeAnalyzeSelfie();
-      const quiz = matcher.mergeQuizWithObservations(state.quiz, observations);
-      state.quiz = quiz;
-      const result = attachVariantLabels(matcher.recommend(state.catalog, quiz));
-      state.result = result;
-      state.resultSource = "quiz";
-      state.activeKit = null;
-      state.cartFollowup = [];
-      state.step = STEP.result;
-      render();
+      const observations = state.selfie.file ? await maybeAnalyzeSelfie() : null;
+      if (
+        observations &&
+        !observations.refer_dermatologist &&
+        (observations.skin_type_hint || (observations.concerns || []).length)
+      ) {
+        state.confirm = {
+          action: null,
+          editing: false,
+          limitNote: false,
+          read_skin_type: observations.skin_type_hint || null,
+          read_concerns: (observations.concerns || []).slice(),
+          corrected_skin_type: observations.skin_type_hint || null,
+          corrected_concerns: (observations.concerns || []).slice(0, 2),
+        };
+        state.confirmObs = observations;
+        state.step = STEP.confirm;
+        render();
+        return;
+      }
+      state.confirm = null;
+      state.confirmObs = null;
+      finishToResult(observations);
     }
   }
 

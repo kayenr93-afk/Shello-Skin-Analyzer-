@@ -15,3 +15,8 @@ catalog.csv
 logs
 refresh_and_deploy.sh
 assets/brand
+ml
+data
+node_modules
+scripts
+db

@@ -177,40 +177,45 @@
     return score;
   }
 
-  function reasonFor(item, quiz, step) {
+  // -> { text, fit } where text is a sentence from the product page and fit
+  // lists the shopper's own answers ("skin:oily", "concern:breakouts") that
+  // the chosen sentence speaks to. fit is empty when the sentence is generic.
+  function reasonDetail(item, quiz, step) {
     const text = item.short_description || item.description || item.page_copy || "";
     const lines = sentences(text);
-    if (!lines.length) return "As described on the product page.";
+    if (!lines.length) return { text: "As described on the product page.", fit: [] };
 
     const concerns = new Set(quiz.concerns || []);
-    const patterns = [];
-    if (quiz.skin_type === "oily" || concerns.has("oil_control") || concerns.has("breakouts")) {
-      patterns.push(/oily|sebum|pimple|blemish|breakout|shine|excess oil/i);
-    }
-    if (quiz.skin_type === "dry" || concerns.has("dryness") || concerns.has("hydration")) {
-      patterns.push(/dry|hydrat|moisture|nourish|soft/i);
-    }
-    if (quiz.skin_type === "sensitive" || concerns.has("sensitivity")) {
-      patterns.push(/sensitive|soothe|calm|fragrance-free|gentle|irritat/i);
-    }
-    if (concerns.has("dullness") || concerns.has("uneven_tone")) {
-      patterns.push(/dull|glow|radiant|brighten|tone|dark (spot|mark)|luminous/i);
-    }
-    if (concerns.has("tan")) patterns.push(/tan|de-tanning|sun tan/i);
+    const answered = (skins, cs) => [
+      ...skins.filter((s) => quiz.skin_type === s).map((s) => "skin:" + s),
+      ...cs.filter((c) => concerns.has(c)).map((c) => "concern:" + c),
+    ];
+    const groups = [
+      [/oily|sebum|pimple|blemish|breakout|shine|excess oil/i, answered(["oily"], ["oil_control", "breakouts"])],
+      [/dry|hydrat|moisture|nourish|soft/i, answered(["dry"], ["dryness", "hydration"])],
+      [/sensitive|soothe|calm|fragrance-free|gentle|irritat/i, answered(["sensitive"], ["sensitivity"])],
+      [/dull|glow|radiant|brighten|tone|dark (spot|mark)|luminous/i, answered([], ["dullness", "uneven_tone"])],
+      [/tan|de-tanning|sun tan/i, answered([], ["tan"])],
+    ];
+    const patterns = groups.filter(([, fit]) => fit.length);
     if (concerns.has("sun_protection") || item.product_type === "sunscreen") {
-      patterns.push(/spf|uv|sun protection|sunburn|sun rays/i);
+      patterns.push([/spf|uv|sun protection|sunburn|sun rays/i, answered([], ["sun_protection"])]);
     }
-    if (step === "cleanse") patterns.push(/cleanse|wash away|impurit|soap-free/i);
-    if (step === "treat") patterns.push(/glow|saffron|exfoliat|dull/i);
+    if (step === "cleanse") patterns.push([/cleanse|wash away|impurit|soap-free/i, []]);
+    if (step === "treat") patterns.push([/glow|saffron|exfoliat|dull/i, []]);
     if (item.product_type === "moisturiser" || item.product_type === "body lotion") {
-      patterns.push(/moisturis|moisturiz|hydrat|aloe/i);
+      patterns.push([/moisturis|moisturiz|hydrat|aloe/i, []]);
     }
 
-    for (const pattern of patterns) {
+    for (const [pattern, fit] of patterns) {
       const hit = lines.find((line) => pattern.test(line));
-      if (hit) return hit;
+      if (hit) return { text: hit, fit };
     }
-    return lines[0];
+    return { text: lines[0], fit: [] };
+  }
+
+  function reasonFor(item, quiz, step) {
+    return reasonDetail(item, quiz, step).text;
   }
 
   function groupByParent(items) {
@@ -363,7 +368,7 @@
         image_height: chosen.image_height || 300,
         product_type: chosen.product_type,
         area: chosen.area,
-        reason: reasonFor(chosen, quiz, step),
+        ...(({ text, fit }) => ({ reason: text, fit }))(reasonDetail(chosen, quiz, step)),
         cart: cartFields(chosen),
       });
     }

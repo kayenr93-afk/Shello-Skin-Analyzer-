@@ -32,6 +32,48 @@ python3 assets/brand/prepare_logo.py
 
 This writes the transparent lockup, the header logo, favicon, apple-touch icon and the 1200×630 share image.
 
+## Evaluation
+
+Phase 0 harness: reproducible evaluation of selfie-analysis "readers" against
+labelled image sets. Cosmetic appearance evaluation only. Datasets are not
+committed; download the Kaggle sets listed in `ml/datasets.json` into
+`data/raw/<key>/`. No image bytes are stored in manifests or run outputs.
+
+```bash
+py -3 -m venv ml/.venv && ml/.venv/Scripts/pip install -r ml/requirements.txt
+py -3 -m ml.data.build_manifests [--only skin_type_odn]
+py -3 -m ml.eval.run --reader prior --manifest ml/data/manifests/skin_type_odn.jsonl --split test
+py -3 -m ml.eval.run --reader gemini_http --manifest ml/data/manifests/skin_type_odn.jsonl --split test --endpoint http://127.0.0.1:8765/api/analyze
+py -3 -m ml.eval.latency --endpoint http://127.0.0.1:8765/api/analyze --manifest ml/data/manifests/skin_type_odn.jsonl --n 30
+py -3 -m ml.eval.tone_check --manifest ml/data/manifests/skintone.jsonl
+py -3 -m pytest ml/tests tests/test_no_photo_stored.py
+npm run test:privacy
+```
+
+Manifests land in `ml/data/manifests/` (committed, JSONL + summary). Run
+outputs land in `ml/eval/runs/<timestamp>_<reader>_<key>/` with a shared
+`registry.csv`.
+
+## Anonymous events (Phase 1)
+
+The app posts photo-free anonymous events to `POST /api/events` (strict allowlist
+schema shared between Node and Python in `api/_lib/event_schema.json`). With no
+`DATABASE_URL` configured the endpoint accepts events but stores nothing
+(`202 {stored:false}`). `db/schema.sql` creates the Postgres `events` table and
+`db/purge.sql` deletes rows older than 180 days — **the retention window is a
+placeholder pending Shello confirmation**. `GET /api/dashboard` serves raw
+events to `dashboard.html` behind `DASHBOARD_TOKEN`; aggregation happens in the
+browser. `DELETE /api/events?session_id=<uuid>` removes a session's events
+(results-page "Delete my answers"); `DELETE /api/dashboard?code=<8hex>` is the
+admin path.
+
+Vendored assets: `vendor/mediapipe/1.2.3/` (`@mediapipe/tasks-vision`, repin
+with `npm run vendor:mediapipe`) and `models/face_landmarker/1/`; hashes and
+sources in `models/MODELS.md`. Quality thresholds live in `models/quality.json`.
+
+E2E: `pip install -r tests/requirements.txt && playwright install chromium`,
+then `python tests/e2e_phase1.py` (starts `server.py` with a stubbed provider).
+
 ## Vercel
 
 This repo is a static site plus `api/analyze.js`. Set `GEMINI_API_KEY` (or `OPENAI_API_KEY`) in the project environment. Do not commit `.env*` files.

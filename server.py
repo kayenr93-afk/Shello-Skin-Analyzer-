@@ -15,13 +15,17 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hmac
 import json
 import os
 import re
 import ssl
 import sys
+import threading
+import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta, timezone
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -35,6 +39,12 @@ GEMINI_MODELS = [
     "gemini-flash-latest",
 ]
 OPENAI_MODEL = "gpt-4o-mini"
+PROMPT_VERSION = "2026-11-21"
+# API base overrides exist only so tests can point at a local stub.
+GEMINI_API_BASE = os.environ.get(
+    "GEMINI_API_BASE", "https://generativelanguage.googleapis.com"
+).rstrip("/")
+OPENAI_API_BASE = os.environ.get("OPENAI_API_BASE", "https://api.openai.com").rstrip("/")
 SYSTEM_PROMPT = """You are a cosmetic skin-care assistant for Shello Cosmetics.
 You look at an optional selfie and return JSON only.
 
@@ -54,6 +64,86 @@ Return a JSON object with this exact shape:
   "refer_dermatologist": boolean,
   "confidence": "low" | "medium" | "high"
 }"""
+
+# Same CSP as vercel.json so local testing matches production headers.
+CONTENT_SECURITY_POLICY = (
+    "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://va.vercel-scripts.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com data:; "
+    "img-src 'self' data: blob: https://shellocosmetics.com; media-src 'self' blob:; "
+    "connect-src 'self' https://vitals.vercel-insights.com https://va.vercel-scripts.com; "
+    "worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+)
+
+_EVENT_SCHEMA = json.loads(
+    (HERE / "api" / "_lib" / "event_schema.json").read_text(encoding="utf-8")
+)
+_FORBIDDEN_STR = re.compile(_EVENT_SCHEMA["forbidden_string_regex"], re.I)
+_UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+# In-memory event store for local runs (Neon is used on Vercel).
+EVENTS: list[dict] = []
+EVENTS_LOCK = threading.Lock()
+
+
+def _check_event_string(s: str) -> bool:
+    return len(s) <= _EVENT_SCHEMA["max_string_chars"] and not _FORBIDDEN_STR.search(s)
+
+
+def _check_event_field(value, spec) -> bool:
+    if value is None:
+        return True  # optional
+    t = spec.get("t")
+    if t == "str":
+        return isinstance(value, str) and _check_event_string(value)
+    if t == "int":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if t == "num":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if t == "bool":
+        return isinstance(value, bool)
+    if t in ("str[]", "int[]"):
+        if not isinstance(value, list) or len(value) > _EVENT_SCHEMA["max_array_items"]:
+            return False
+        if t == "str[]":
+            return all(isinstance(v, str) and _check_event_string(v) for v in value)
+        return all(isinstance(v, int) and not isinstance(v, bool) for v in value)
+    if t == "obj":
+        if not isinstance(value, dict):
+            return False
+        sub_fields = spec.get("fields") or {}
+        if any(k not in sub_fields for k in value):
+            return False
+        return all(
+            _check_event_field(value.get(k), sub) and _check_enum(value.get(k), sub)
+            for k, sub in sub_fields.items()
+        )
+    return False
+
+
+def _check_enum(value, spec) -> bool:
+    if spec.get("enum") and value is not None:
+        return value in spec["enum"]
+    return True
+
+
+def validate_event(event_type, payload) -> bool:
+    """Strict allowlist validation shared with api/_lib/validate.js."""
+    tspec = _EVENT_SCHEMA["types"].get(event_type)
+    if not tspec or not isinstance(payload, dict):
+        return False
+    fields = tspec.get("fields") or {}
+    if any(k not in fields for k in payload):
+        return False
+    if any(payload.get(k) is None for k in tspec.get("required") or []):
+        return False
+    return all(
+        _check_event_field(payload.get(k), spec) and _check_enum(payload.get(k), spec)
+        for k, spec in fields.items()
+    )
+
 
 ALLOWED_TYPES = {"oily", "dry", "combination", "normal", "sensitive"}
 ALLOWED_CONCERNS = {
@@ -89,6 +179,13 @@ def load_env_files() -> None:
                 os.environ[key] = value
 
 
+def _device_reader_pct() -> int:
+    try:
+        return max(0, min(100, int(os.environ.get("DEVICE_READER_PCT", "0"))))
+    except ValueError:
+        return 0
+
+
 def availability() -> dict:
     gemini = bool(os.environ.get("GEMINI_API_KEY", "").strip())
     openai = bool(os.environ.get("OPENAI_API_KEY", "").strip())
@@ -96,6 +193,7 @@ def availability() -> dict:
         "ok": True,
         "analysis_available": gemini or openai,
         "provider": "gemini" if gemini else ("openai" if openai else None),
+        "device_reader_pct": _device_reader_pct(),
         "message": (
             "Optional selfie analysis is available. Photos are not stored."
             if gemini or openai
@@ -180,10 +278,7 @@ def analyze_gemini(image_b64: str, mime: str) -> tuple[str, dict]:
         "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
     }
     for model in GEMINI_MODELS:
-        url = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{model}:generateContent?key={key}"
-        )
+        url = f"{GEMINI_API_BASE}/v1beta/models/{model}:generateContent?key={key}"
         status, data = http_json(
             url,
             payload_base,
@@ -232,7 +327,7 @@ def analyze_openai(image_b64: str, mime: str) -> tuple[str, dict]:
         ],
     }
     status, data = http_json(
-        "https://api.openai.com/v1/chat/completions",
+        f"{OPENAI_API_BASE}/v1/chat/completions",
         payload,
         {
             "Content-Type": "application/json",
@@ -249,6 +344,12 @@ def analyze_openai(image_b64: str, mime: str) -> tuple[str, dict]:
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(HERE), **kwargs)
+
+    def end_headers(self):
+        # Same CSP as vercel.json so local testing matches production.
+        self.send_header("Content-Security-Policy", CONTENT_SECURITY_POLICY)
+        self.send_header("X-Content-Type-Options", "nosniff")
+        super().end_headers()
 
     def log_message(self, format, *args):
         # Do not log request bodies (they may contain images). Path + status only.
@@ -271,15 +372,131 @@ class Handler(SimpleHTTPRequestHandler):
             return
         self.send_error(404)
 
+    def _read_json_body(self, max_bytes):
+        length = int(self.headers.get("Content-Length") or 0)
+        if length > max_bytes:
+            self.rfile.read(length)
+            return None, "too_big"
+        raw = self.rfile.read(length) if length else b""
+        try:
+            return json.loads(raw.decode("utf-8") or "{}"), None
+        except json.JSONDecodeError:
+            return None, "bad_json"
+
+    def _dashboard_auth(self):
+        token = os.environ.get("DASHBOARD_TOKEN", "")
+        if not token:
+            return "unset"
+        header = self.headers.get("Authorization", "")
+        got = re.sub(r"^Bearer\s+", "", header, flags=re.I)
+        return "ok" if hmac.compare_digest(got, token) else "bad"
+
+    def _handle_events_post(self):
+        body, err = self._read_json_body(_EVENT_SCHEMA["max_body_bytes"])
+        if err or not isinstance(body, dict):
+            self._json(400, {"ok": False})
+            return
+        if any(k not in ("type", "payload", "session_id") for k in body) or len(body) > 3:
+            self._json(400, {"ok": False})
+            return
+        session_id = body.get("session_id")
+        event_type = body.get("type")
+        if not isinstance(event_type, str) or not _UUID_RE.match(str(session_id or "")):
+            self._json(400, {"ok": False})
+            return
+        if not validate_event(event_type, body.get("payload")):
+            self._json(400, {"ok": False})
+            return
+        with EVENTS_LOCK:
+            EVENTS.append(
+                {
+                    "id": len(EVENTS) + 1,
+                    "session_id": session_id,
+                    "type": event_type,
+                    "payload": body["payload"],
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+        self._json(200, {"ok": True, "stored": True})
+
+    def _handle_events_delete(self):
+        from urllib.parse import urlparse, parse_qs
+
+        sid = (parse_qs(urlparse(self.path).query).get("session_id") or [""])[0]
+        if not _UUID_RE.match(sid):
+            self._json(400, {"ok": False, "error": "invalid session_id"})
+            return
+        with EVENTS_LOCK:
+            before = len(EVENTS)
+            EVENTS[:] = [e for e in EVENTS if e["session_id"] != sid]
+            deleted = before - len(EVENTS)
+        self._json(200, {"ok": True, "deleted": deleted})
+
+    def _handle_dashboard_get(self):
+        from urllib.parse import urlparse, parse_qs
+
+        auth = self._dashboard_auth()
+        if auth == "unset":
+            self._json(503, {"ok": False, "error": "dashboard not configured"})
+            return
+        if auth != "ok":
+            self._json(401, {"ok": False})
+            return
+        qs = parse_qs(urlparse(self.path).query)
+        try:
+            days = min(max(int((qs.get("days") or ["30"])[0]), 1), 180)
+        except ValueError:
+            days = 30
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        with EVENTS_LOCK:
+            rows = [e for e in EVENTS if e["created_at"] >= since.isoformat()][-50000:]
+        self._json(200, {"ok": True, "events": rows, "days": days})
+
+    def _handle_dashboard_delete(self):
+        from urllib.parse import urlparse, parse_qs
+
+        auth = self._dashboard_auth()
+        if auth == "unset":
+            self._json(503, {"ok": False, "error": "dashboard not configured"})
+            return
+        if auth != "ok":
+            self._json(401, {"ok": False})
+            return
+        code = (parse_qs(urlparse(self.path).query).get("code") or [""])[0]
+        if not re.match(r"^[0-9a-fA-F]{8}$", code):
+            self._json(400, {"ok": False, "error": "code must be 8 hex chars"})
+            return
+        with EVENTS_LOCK:
+            before = len(EVENTS)
+            EVENTS[:] = [e for e in EVENTS if not e["session_id"].startswith(code)]
+            deleted = before - len(EVENTS)
+        self._json(200, {"ok": True, "deleted": deleted})
+
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/api/analyze":
             self._json(200, availability())
             return
+        if path == "/api/dashboard":
+            self._handle_dashboard_get()
+            return
         super().do_GET()
+
+    def do_DELETE(self):
+        path = self.path.split("?", 1)[0]
+        if path == "/api/events":
+            self._handle_events_delete()
+            return
+        if path == "/api/dashboard":
+            self._handle_dashboard_delete()
+            return
+        self.send_error(404)
 
     def do_POST(self):
         path = self.path.split("?", 1)[0]
+        if path == "/api/events":
+            self._handle_events_post()
+            return
         if path != "/api/analyze":
             self.send_error(404)
             return
@@ -321,6 +538,7 @@ class Handler(SimpleHTTPRequestHandler):
             })
             return
         try:
+            started = time.monotonic()
             if os.environ.get("GEMINI_API_KEY", "").strip():
                 model, observations = analyze_gemini(image_b64, mime)
                 provider = "gemini"
@@ -332,14 +550,26 @@ class Handler(SimpleHTTPRequestHandler):
                 "analysis_available": True,
                 "provider": provider,
                 "model": model,
+                "prompt_version": PROMPT_VERSION,
+                "latency_ms": round((time.monotonic() - started) * 1000.0, 2),
                 "observations": observations,
                 "message": "Cosmetic appearance notes only — not a diagnosis. The photo was not stored.",
             })
-        except Exception:
+        except Exception as exc:
+            name = type(exc).__name__.lower()
+            if "timeout" in name or "timedout" in name or isinstance(exc, TimeoutError):
+                error_kind = "timeout"
+            elif "json" in name or "decode" in name:
+                error_kind = "parse"
+            else:
+                error_kind = "provider_error"
             self._json(200, {
                 "ok": True,
                 "analysis_available": True,
                 "provider": avail["provider"],
+                "model": None,
+                "prompt_version": PROMPT_VERSION,
+                "error_kind": error_kind,
                 "observations": None,
                 "message": "Selfie analysis could not be completed just now. Your quiz answers will still be used to build a routine.",
             })

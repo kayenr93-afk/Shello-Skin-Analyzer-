@@ -1,0 +1,2 @@
+# E2E test dependency. Pinned to the latest release >=7 days old at pin time.
+playwright==1.65.2

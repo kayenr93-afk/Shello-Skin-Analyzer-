@@ -1,0 +1,91 @@
+{
+  "skin_type_odn": {
+    "kaggle_slug": "shakyadissanayake/oily-dry-and-normal-skin-types-dataset",
+    "path": "data/raw/skin_type_odn",
+    "task": "skin_type",
+    "licence": "Apache-2.0",
+    "shippable": true,
+    "folder_labels": [
+      { "regex": "^oily$", "skin_type": "oily" },
+      { "regex": "^dry$", "skin_type": "dry" },
+      { "regex": "^normal$", "skin_type": "normal" }
+    ]
+  },
+  "facial_skin_analysis": {
+    "kaggle_slug": "killa92/facial-skin-analysis-and-type-classification",
+    "path": "data/raw/facial_skin_analysis",
+    "task": "concerns_severity",
+    "licence": "Apache-2.0",
+    "shippable": true,
+    "severity_threshold": 2,
+    "image_id_column_regex": "^image_?id$",
+    "xlsx_label_files": [
+      "skin_type_classification_dataset/skinalaysis_labeling_train1.xlsx",
+      "skin_type_classification_dataset/skinanalysis_valid1.xlsx"
+    ],
+    "xlsx_label_file_regex": "\\.xlsx$",
+    "skin_type_folder_labels": [
+      { "regex": "^oily$", "skin_type": "oily" },
+      { "regex": "^dry$", "skin_type": "dry" },
+      { "regex": "^normal$", "skin_type": "normal" }
+    ],
+    "column_map": [
+      { "regex": "acne.?severity|whiteheads", "concern": "breakouts" },
+      { "regex": "redness.?severity", "concern": "redness" },
+      { "regex": "dark.?spots|pigment", "concern": "dark_spots" },
+      { "regex": "open.?pores|blackheads", "concern": "pores" },
+      { "regex": "fine.?lines?|wrink", "concern": "fine_lines" }
+    ]
+  },
+  "facial_skin_concerns": {
+    "kaggle_slug": "shijo96john/facial-skin-acne-pigmentation-pores-wrinkles",
+    "path": "data/raw/facial_skin_concerns",
+    "task": "concerns",
+    "licence": "Apache-2.0",
+    "shippable": true,
+    "folder_labels": [
+      { "regex": "^inflammatory acne$", "concern": "breakouts" },
+      { "regex": "^non inflammatory acne white heads$", "concern": "breakouts" },
+      { "regex": "^non inflammatory acne black heads$", "concern": "pores" },
+      { "regex": "^pigmentation$", "concern": "dark_spots" },
+      { "regex": "^dark spots$", "concern": "dark_spots" },
+      { "regex": "^pores$", "concern": "pores" },
+      { "regex": "^wrinkles$", "concern": "fine_lines" },
+      { "regex": "^redness$", "concern": "redness" }
+    ]
+  },
+  "skin_issues": {
+    "kaggle_slug": "ahmedismaiil/skin-issues-version-2-dataset-balanced",
+    "path": "data/raw/skin_issues",
+    "task": "concerns",
+    "licence": "Unknown",
+    "shippable": false,
+    "folder_labels": [
+      { "regex": "^acne$", "concern": "breakouts" },
+      { "regex": "^blackheades$", "concern": "pores" },
+      { "regex": "^dark spots$", "concern": "dark_spots" },
+      { "regex": "^pores$", "concern": "pores" },
+      { "regex": "^wrinkles$", "concern": "fine_lines" }
+    ]
+  },
+  "skintone": {
+    "kaggle_slug": "adityakammati/skintone-dataset",
+    "path": "data/raw/skintone",
+    "task": "tone",
+    "licence": "CC BY 4.0",
+    "shippable": true,
+    "csv_label_file_regex": "\\.csv$",
+    "csv_filename_column_regex": "file|image|name|path",
+    "csv_class_column_regex": "class|label|tone",
+    "tone_label_order": [
+      "fair",
+      "light",
+      "dark"
+    ],
+    "folder_labels": [
+      { "regex": "^fair$", "tone_label": "fair" },
+      { "regex": "^light$", "tone_label": "light" },
+      { "regex": "^dark$", "tone_label": "dark" }
+    ]
+  }
+}

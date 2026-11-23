@@ -5,6 +5,14 @@
   "scripts": {
     "start": "python3 server.py",
     "catalog": "python3 build_catalog.py",
-    "test:personas": "python3 tests/run_personas.py"
+    "test:personas": "python3 tests/run_personas.py",
+    "test:privacy": "ml\\.venv\\Scripts\\python -m pytest tests/test_no_photo_stored.py -q && node tests/node/analyze_privacy.mjs",
+    "test:events": "node tests/node/events_dashboard.mjs",
+    "vendor:mediapipe": "node scripts/vendor_mediapipe.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.2.3",
+    "@neondatabase/serverless": "1.2.1",
+    "onnxruntime-web": "1.31.1"
   }
 }

@@ -10,3 +10,13 @@ node_modules/
 .DS_Store
 .vercel
 logs/
+data/
+ml/.venv/
+ml/eval/cache/
+ml/logs/
+ml/debug/
+tests/_e2e_server.log
+tests/_e2e_tmp/
+ml/artifacts/
+models/skin_reader/sr-smoke/
+models/skin_reader/active.json
