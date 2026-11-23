@@ -1,0 +1,10 @@
+{
+  "name": "shello-skin-analyzer",
+  "private": true,
+  "description": "Standalone Shello Cosmetics skin analyzer. Static frontend plus /api/analyze.",
+  "scripts": {
+    "start": "python3 server.py",
+    "catalog": "python3 build_catalog.py",
+    "test:personas": "python3 tests/run_personas.py"
+  }
+}

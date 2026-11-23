@@ -1,0 +1,3 @@
+# Local serving uses the Python standard library only.
+# Optional, for the persona screenshot tests:
+playwright>=1.40.0
