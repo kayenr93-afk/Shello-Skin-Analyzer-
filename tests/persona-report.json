@@ -1,0 +1,228 @@
+{
+  "base": "http://127.0.0.1:8765",
+  "catalog_counts": {
+    "store_products": 53,
+    "included_skus": 68,
+    "excluded_products": 25,
+    "excluded_by_reason": {
+      "bundle/combo": 3,
+      "deodorant": 3,
+      "foot cream": 1,
+      "hair": 15,
+      "hand wash": 3
+    },
+    "included_by_type": {
+      "body lotion": 23,
+      "body wash": 5,
+      "cleanser": 17,
+      "hand cream": 3,
+      "moisturiser": 11,
+      "scrub": 2,
+      "serum/treat": 2,
+      "shower gel": 2,
+      "sunscreen": 3
+    }
+  },
+  "budget_bands": [
+    {
+      "id": "value",
+      "label": "Value",
+      "max_lkr": 900,
+      "note": "Smallest in-stock sizes that still complete a 2–3 step routine. The lowest complete face routine (cleanse + treat/glow + moisturise) is Rs 500: Lemon Soft Face Wash 50ml (Rs 150), Saffron Glow Gel 35ml (Rs 200), Aloe Vera Moisturising Gel – 35ml Sachet Packet 35ml (Rs 150). A two-step cleanse + moisturise starts at Rs 300."
+    },
+    {
+      "id": "everyday",
+      "label": "Everyday",
+      "max_lkr": 1950,
+      "note": "Daily/personal sizes around the mid-price of each routine step. A typical mid-catalog face routine totals about Rs 1280. A typical mid-catalog body routine totals about Rs 1770."
+    },
+    {
+      "id": "generous",
+      "label": "Generous",
+      "max_lkr": null,
+      "note": "Larger home or family sizes (for example 180ml treat gels, 200ml face washes, 400–500ml lotions and washes). Individual SKUs in this catalog go up to Rs 1150; a three-step routine of larger sizes can approach Rs 3450."
+    }
+  ],
+  "gaps": [
+    {
+      "kind": "missing_type",
+      "detail": "No face mask is listed in the in-stock skin catalog."
+    },
+    {
+      "kind": "missing_type",
+      "detail": "No face-specific sunscreen SKU. Advance Sun Care Protection Lotion (SPF 20) is listed as a body lotion / sunscreen."
+    },
+    {
+      "kind": "missing_type",
+      "detail": "No toner is listed in the in-stock skin catalog."
+    },
+    {
+      "kind": "size_mismatch",
+      "product": "Brightening Body Wash & Scrub",
+      "parent_id": 4159,
+      "detail": "Attribute lists more than one size but this is a simple product with a single price; pack size is not uniquely published (250ml, 500ml)."
+    },
+    {
+      "kind": "size_mismatch",
+      "product": "Fairness Soft Face Wash",
+      "parent_id": 3919,
+      "detail": "Product copy mentions 500ml but published in-stock SKUs are 50ml, 100ml, 200ml."
+    },
+    {
+      "kind": "size_mismatch",
+      "product": "Fairness Cream",
+      "parent_id": 3936,
+      "detail": "Unit mismatch between copy and SKUs: 50g in copy vs 50ml on the SKU; 100g in copy vs 100ml on the SKU."
+    },
+    {
+      "kind": "size_mismatch",
+      "product": "Herbal Face Scrub",
+      "parent_id": 3954,
+      "detail": "Unit mismatch between copy and SKUs: 100ml in copy vs 100g on the SKU; 50ml in copy vs 50g on the SKU."
+    },
+    {
+      "kind": "size_mismatch",
+      "product": "Saffron Glow Gel",
+      "parent_id": 4092,
+      "detail": "Product copy mentions 160ml but published in-stock SKUs are 35ml, 180ml."
+    },
+    {
+      "kind": "missing_description",
+      "product": "Shello Hand Cream & Body Cream 35 ml",
+      "parent_id": 4088,
+      "detail": "The parent product copy describes Sunset Hand Cream & Body Cream only; it does not describe the Forest, Ocean scent variant(s)."
+    },
+    {
+      "kind": "size_mismatch",
+      "product": "Massage Lotion",
+      "parent_id": 3884,
+      "detail": "The product attributes list 125ml but no matching in-stock SKU was published (sellable sizes: 250ml, 500ml)."
+    },
+    {
+      "kind": "slug_mismatch",
+      "product": "Cucumber Soft Face Wash",
+      "parent_id": 3926,
+      "detail": "Cucumber Soft Face Wash is published under the slug fairness-soft-face-wash-copy (the permalink returns 200). The expected /product/cucumber-soft-face-wash/ URL returns 404. This looks like a leftover slug from a duplicated product."
+    }
+  ],
+  "personas": [
+    {
+      "id": "oily-breakouts",
+      "label": "Oily with breakouts",
+      "heading": "Your Shello routine",
+      "steps": [
+        {
+          "label": "CLEANSE",
+          "name": "Lemon Soft Face Wash",
+          "meta": "100ml · Rs 280",
+          "reason": "FROM THE PRODUCT PAGE\nControl excess oil and prevent pimples with Shello Lemon Soft Face Wash.",
+          "link": "https://shellocosmetics.com/product/lemon-soft-face-wash/?attribute_size=100ml"
+        },
+        {
+          "label": "TREAT / GLOW",
+          "name": "Saffron Glow Gel",
+          "meta": "180ml · Rs 975",
+          "reason": "FROM THE PRODUCT PAGE\nBring out your skin’s natural glow with Shello Saffron Glow Gel.",
+          "link": "https://shellocosmetics.com/product/saffron-glow-gel/?attribute_size=180ml"
+        },
+        {
+          "label": "MOISTURISE",
+          "name": "Aloe Vera Moisturising Gel – Pump Bottle",
+          "meta": "160ml · Rs 575",
+          "reason": "FROM THE PRODUCT PAGE\nRefresh and soothe your skin with the natural goodness of Aloe Vera.",
+          "link": "https://shellocosmetics.com/product/aloe-vera-moisturising-gel-pump-bottle/?attribute_size=160ml"
+        }
+      ],
+      "total": "Routine total\nRs 1,830",
+      "dermatologist": false,
+      "screenshot": "/workspace/skin-analyzer/screenshots/persona-oily-breakouts.png"
+    },
+    {
+      "id": "dry-dull-value",
+      "label": "Dry and dull on a low budget",
+      "heading": "Your Shello routine",
+      "steps": [
+        {
+          "label": "CLEANSE",
+          "name": "Cucumber Soft Face Wash",
+          "meta": "50ml · Rs 170",
+          "reason": "FROM THE PRODUCT PAGE\nCleanse and hydrate your skin gently with Shello Cucumber Soft Face Wash.",
+          "link": "https://shellocosmetics.com/product/fairness-soft-face-wash-copy/?attribute_size=50ml"
+        },
+        {
+          "label": "TREAT / GLOW",
+          "name": "Saffron Glow Gel",
+          "meta": "35ml · Rs 200",
+          "reason": "FROM THE PRODUCT PAGE\nEnriched with the luxurious goodness of saffron, its light and cooling gel helps keep your skin fresh, soft, smooth, and deeply hydrated while reducing the look of dullness.",
+          "link": "https://shellocosmetics.com/product/saffron-glow-gel/?attribute_size=35ml"
+        },
+        {
+          "label": "MOISTURISE",
+          "name": "Vitamin E Cream",
+          "meta": "50ml · Rs 260",
+          "reason": "FROM THE PRODUCT PAGE\nGive your skin the nourishing care it deserves with Shello Vitamin E Face Cream.",
+          "link": "https://shellocosmetics.com/product/vitamin-e-cream/?attribute_size=50ml"
+        }
+      ],
+      "total": "Routine total\nRs 630",
+      "dermatologist": false,
+      "screenshot": "/workspace/skin-analyzer/screenshots/persona-dry-dull-value.png"
+    },
+    {
+      "id": "sensitive",
+      "label": "Sensitive",
+      "heading": "Your Shello routine",
+      "steps": [
+        {
+          "label": "CLEANSE",
+          "name": "Cucumber Soft Face Wash",
+          "meta": "100ml · Rs 310",
+          "reason": "FROM THE PRODUCT PAGE\nCleanse and hydrate your skin gently with Shello Cucumber Soft Face Wash.",
+          "link": "https://shellocosmetics.com/product/fairness-soft-face-wash-copy/?attribute_size=100ml"
+        },
+        {
+          "label": "TREAT / GLOW",
+          "name": "Saffron Glow Gel",
+          "meta": "180ml · Rs 975",
+          "reason": "FROM THE PRODUCT PAGE\nBring out your skin’s natural glow with Shello Saffron Glow Gel.",
+          "link": "https://shellocosmetics.com/product/saffron-glow-gel/?attribute_size=180ml"
+        },
+        {
+          "label": "MOISTURISE",
+          "name": "Aloe Vera Moisturising Gel – Pump Bottle",
+          "meta": "160ml · Rs 575",
+          "reason": "FROM THE PRODUCT PAGE\nRefresh and soothe your skin with the natural goodness of Aloe Vera.",
+          "link": "https://shellocosmetics.com/product/aloe-vera-moisturising-gel-pump-bottle/?attribute_size=160ml"
+        }
+      ],
+      "total": "Routine total\nRs 1,860",
+      "dermatologist": false,
+      "screenshot": "/workspace/skin-analyzer/screenshots/persona-sensitive.png"
+    }
+  ],
+  "links": {
+    "total": 68,
+    "ok": 67,
+    "failed": {
+      "https://shellocosmetics.com/product/mahoshadha-lotion/?attribute_size=500ml": 0
+    }
+  },
+  "analyze": {
+    "get": {
+      "analysis_available": true,
+      "provider": "gemini"
+    },
+    "post": {
+      "http": 200,
+      "analysis_available": true,
+      "provider": "gemini",
+      "has_observations": true,
+      "message": "Cosmetic appearance notes only — not a diagnosis. The photo was not stored."
+    }
+  },
+  "v2_screenshots": {
+    "first_screen": "/workspace/skin-analyzer/screenshots/v2-first-screen.png",
+    "sinhala_results": "/workspace/skin-analyzer/screenshots/v2-sinhala-results.png",
+    "whatsapp_add_all": "/workspace/skin-analyzer/screenshots/v2-whatsapp-add-all.png"
+  }
+}

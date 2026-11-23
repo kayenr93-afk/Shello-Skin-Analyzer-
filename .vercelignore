@@ -1,0 +1,17 @@
+.env
+.env.*
+.env*
+screenshots
+server.py
+.venv
+__pycache__
+*.pyc
+tests
+.DS_Store
+README.md
+build_catalog.py
+requirements.txt
+catalog.csv
+logs
+refresh_and_deploy.sh
+assets/brand

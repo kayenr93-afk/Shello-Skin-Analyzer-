@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Shello Skin Analyzer — Product Requirements Document</title>
+<style>
+@font-face {
+  font-family: "Fraunces";
+  src: url("file:///usr/share/fonts/truetype/sand-box/google/Fraunces/Fraunces-VariableFont_SOFT,WONK,opsz,wght.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("file:///usr/share/fonts/truetype/sand-box/google/Source%20Sans%203/SourceSans3-VariableFont_wght.ttf") format("truetype");
+  font-weight: 200 900;
+  font-style: normal;
+}
+
+:root {
+  --green: #01652F;
+  --green-deep: #014C23;
+  --red: #D61921;
+  --ink: #231F20;
+  --muted: #4A5A4C;
+  --line: #C7DDD1;
+  --bg: #F5F9F7;
+  --tint: #E6F0EA;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  background: #fff;
+  font-family: "Source Sans 3", "Source Sans Pro", "Segoe UI", sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.45;
+  font-weight: 400;
+}
+h1, h2, h3, .display {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 560;
+  color: var(--green-deep);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  page-break-after: avoid;
+}
+h1 { font-size: 26pt; margin: 0 0 8pt; }
+h2 {
+  font-size: 15.5pt;
+  margin: 18pt 0 8pt;
+  padding-top: 4pt;
+  border-bottom: 1.5px solid var(--green);
+  padding-bottom: 4pt;
+}
+h3 { font-size: 12pt; margin: 12pt 0 4pt; color: var(--green); }
+p { margin: 0 0 8pt; }
+ul, ol { margin: 0 0 10pt; padding-left: 18pt; }
+li { margin: 0 0 3pt; }
+strong { font-weight: 650; }
+a { color: var(--green); text-decoration: none; }
+.muted { color: var(--muted); }
+.small { font-size: 9pt; color: var(--muted); }
+
+/* Cover */
+.cover {
+  page-break-after: always;
+  min-height: 240mm;
+  display: flex;
+  flex-direction: column;
+  padding: 8mm 4mm 10mm;
+}
+.cover-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--green);
+  padding-bottom: 10pt;
+  margin-bottom: 28pt;
+}
+.cover-top .kicker {
+  font-size: 8.5pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--red);
+}
+.cover-logo {
+  width: 132mm;
+  max-width: 100%;
+  height: auto;
+  margin: 18mm auto 16mm;
+  display: block;
+}
+.cover h1 { font-size: 28pt; text-align: left; }
+.cover .lede { font-size: 13pt; color: var(--muted); margin-bottom: 18pt; max-width: 38em; }
+.meta-table { width: 100%; border-collapse: collapse; margin-top: 8pt; }
+.meta-table th, .meta-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5pt 8pt 5pt 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 10pt;
+}
+.meta-table th { color: var(--muted); font-weight: 600; width: 38mm; }
+.cover-foot {
+  margin-top: auto;
+  padding-top: 16pt;
+  border-top: 3px solid var(--green);
+  font-size: 9pt;
+  color: var(--muted);
+}
+
+/* Callouts */
+.callout {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-left: 4px solid var(--green);
+  padding: 8pt 10pt;
+  margin: 0 0 12pt;
+  page-break-inside: avoid;
+}
+.callout.warn {
+  background: #F8F1E3;
+  border-left-color: #8A5A12;
+}
+.callout .label {
+  font-size: 8pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--green);
+  margin-bottom: 2pt;
+}
+.callout.warn .label { color: #8A5A12; }
+
+/* Tables */
+table.data {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 12pt;
+  font-size: 9.2pt;
+  page-break-inside: avoid;
+}
+table.data th {
+  background: var(--green);
+  color: #fff;
+  font-weight: 600;
+  text-align: left;
+  padding: 5pt 7pt;
+}
+table.data td {
+  border-bottom: 1px solid var(--line);
+  padding: 5pt 7pt;
+  vertical-align: top;
+}
+table.data tr:nth-child(even) td { background: var(--bg); }
+table.data.compact td, table.data.compact th { padding: 4pt 6pt; }
+
+.flow {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12pt;
+  counter-reset: step;
+}
+.flow li {
+  page-break-inside: avoid;
+  padding: 6pt 0 6pt 28pt;
+  position: relative;
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+}
+.flow li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 7pt;
+  width: 16pt;
+  height: 16pt;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-size: 8.5pt;
+  font-weight: 700;
+  text-align: center;
+  line-height: 16pt;
+}
+.flow .title { font-weight: 650; color: var(--green-deep); }
+
+/* Tokens */
+.swatch {
+  display: inline-block;
+  width: 9pt;
+  height: 9pt;
+  border-radius: 2pt;
+  margin-right: 4pt;
+  vertical-align: -1pt;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+
+/* Checklist */
+.check { list-style: none; padding: 0; margin: 0 0 12pt; }
+.check li {
+  page-break-inside: avoid;
+  padding: 5pt 0 5pt 18pt;
+  position: relative;
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+}
+.check li::before {
+  content: "☐";
+  position: absolute;
+  left: 0;
+  top: 5pt;
+  color: var(--green);
+  font-size: 11pt;
+}
+.check li.done::before { content: "☑"; }
+.check .tag {
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-left: 6pt;
+  color: var(--red);
+}
+.check li.done .tag { color: var(--green); }
+
+.toc { margin: 8pt 0 0; padding: 0; list-style: none; }
+.toc li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8pt;
+  border-bottom: 1px dotted var(--line);
+  padding: 3pt 0;
+  margin: 0;
+}
+.toc .n { color: var(--muted); }
+
+.arch {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8pt;
+  margin: 0 0 12pt;
+  page-break-inside: avoid;
+}
+.arch .box {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  padding: 8pt 9pt;
+  border-top: 3px solid var(--green);
+}
+.arch h3 { margin: 0 0 4pt; font-size: 10.5pt; }
+.arch p { margin: 0; font-size: 9pt; }
+
+.note-list li { margin-bottom: 4pt; }
+
+@page {
+  size: A4;
+  margin: 16mm 16mm 18mm 16mm;
+  @bottom-left {
+    content: "Shello Skin Analyzer  ·  PRD  ·  As built 21 November 2026";
+    font-family: "Source Sans 3", sans-serif;
+    font-size: 8pt;
+    color: #556655;
+  }
+  @bottom-right {
+    content: "Page " counter(page);
+    font-family: "Source Sans 3", sans-serif;
+    font-size: 8pt;
+    color: #556655;
+  }
+}
+@page :first {
+  margin: 14mm 16mm 16mm 16mm;
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+
+table.data thead { display: table-header-group; }
+table.data tr { page-break-inside: avoid; }
+h2 + p, h2 + .small, h2 + .callout { break-after: avoid; }
+.sources { page-break-inside: avoid; }
+
+@media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div class="cover-top">
+    <div class="kicker">Shello Cosmetics</div>
+    <div class="kicker">Product requirements</div>
+  </div>
+  <img class="cover-logo" src="file:///workspace/skin-analyzer/docs/_cover-logo.png" alt="Shello — Nature Extracts + Cosmetic Science" />
+  <h1>Skin Analyzer</h1>
+  <p class="lede">Product requirements document for the app as built and running on 21 November 2026. It describes what is live today, not a future design.</p>
+  <table class="meta-table">
+    <tr><th>Status</th><td>Live at <strong>https://skin.shellocosmetics.com</strong></td></tr>
+    <tr><th>Date</th><td>21 November 2026, Asia/Colombo</td></tr>
+    <tr><th>Prepared for</th><td>Nethmi Lowe, Shello Cosmetics</td></tr>
+    <tr><th>Latest production deploy</th><td>dpl_CQNKVVtcJHmxneypcpUMZ6rj5dgD (branding and language-chip fix)</td></tr>
+    <tr><th>Catalog snapshot</th><td>Fetched 21 November 2026, 11:35 AM Asia/Colombo — 68 in-stock skin SKUs from 53 shop products</td></tr>
+    <tr><th>Scope note</th><td>Cosmetic suggestions only. This tool does not diagnose or treat skin conditions. Recommendation accuracy has not been measured yet.</td></tr>
+  </table>
+  <div class="cover-foot">
+    Sources: the production code and files in the skin-analyzer project, the 21 November 2026 persona and audience tests, and the live checks of the same day. No secrets or API keys are included in this document.
+  </div>
+</section>
+
+<h2>1. Overview and goal</h2>
+<p>The Shello Skin Analyzer is a standalone, mobile-first web app for Shello Cosmetics (shellocosmetics.com — a WooCommerce shop with prices in Sri Lankan Rupees, based in Kiribathgoda, Sri Lanka). A shopper can optionally take or upload a selfie, answer a short quiz, and receive a 2–3 step routine of real, in-stock Shello face or body skin products, each with a size, an LKR price, a reason taken from that product’s own page, and a shop link.</p>
+<p>The app does not change the shop, the CMS, or any prices. It does not diagnose or treat skin conditions. If the shopper reports painful cysts, a rash, bleeding, or a sudden change — or if a selfie is flagged the same way — the app shows a dermatologist note and no products.</p>
+<div class="callout">
+  <div class="label">Goal</div>
+  Help a shopper leave with a simple, honest routine they can actually buy from the live Shello catalog, without inventing claims, prices, or sizes, and without storing their photo.
+</div>
+
+<h2>2. Users and personas</h2>
+<p>The intended user is a shopper on or around the Shello site who wants a short face or body routine in English, Sinhala, or Tamil. The quiz has no separate path for men, and no pregnancy or medical-caution question; those were noted in testing, not treated as test failures.</p>
+<p>Three named personas were run against the live matcher on 21 November 2026 (catalog as at that test). All three received a 3-step, in-stock, in-budget face routine. Reasons were taken from the product pages.</p>
+<table class="data">
+  <thead>
+    <tr><th>Persona</th><th>Routine recorded in the test</th><th>Total</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Oily with breakouts</strong><br>Everyday budget, face</td>
+      <td>Lemon Soft Face Wash 100&nbsp;ml (Rs 280); Saffron Glow Gel 180&nbsp;ml (Rs 975); Aloe Vera Moisturising Gel – Pump Bottle 160&nbsp;ml (Rs 575)</td>
+      <td>Rs 1,830</td>
+    </tr>
+    <tr>
+      <td><strong>Dry and dull, low budget</strong><br>Value budget, face</td>
+      <td>Cucumber Soft Face Wash 50&nbsp;ml (Rs 170); Saffron Glow Gel 35&nbsp;ml (Rs 200); Vitamin E Cream 50&nbsp;ml (Rs 260)</td>
+      <td>Rs 630</td>
+    </tr>
+    <tr>
+      <td><strong>Sensitive</strong><br>Everyday budget, face</td>
+      <td>Cucumber Soft Face Wash 100&nbsp;ml (Rs 310); Saffron Glow Gel 180&nbsp;ml (Rs 975); Aloe Vera Moisturising Gel – Pump Bottle 160&nbsp;ml (Rs 575)</td>
+      <td>Rs 1,860</td>
+    </tr>
+  </tbody>
+</table>
+<p class="small">In the same test, the Cucumber Soft Face Wash links still used the shop slug <em>fairness-soft-face-wash-copy</em>. That is a shop-side slug issue, listed again under open items. Whether these routines would still be chosen after a later catalog refresh was not re-run for this document.</p>
+<p>The landing page also offers five ready-made kits, each built by the same matcher from in-stock products: Oily / breakouts, Dry / dull, Sensitive, Glow, and Body care. A shopper can open a kit or add its first product to the shop cart without taking the quiz.</p>
+
+<h2>3. User flow</h2>
+<p>The quiz is six steps (the progress bar is “step n of 6”). That is what is built today — not a four-question quiz. Climate is one step with two sub-questions. The selfie is optional and can be skipped.</p>
+<ol class="flow">
+  <li><span class="title">Landing.</span> Brand header, language chips (EN, Sinhala, Tamil), a short explanation, the privacy note, “Start the quiz”, and the ready-made kits.</li>
+  <li><span class="title">Skin type.</span> Oily, dry, combination, normal, or sensitive.</li>
+  <li><span class="title">Concerns and safety flags.</span> Up to two concerns from: breakouts, oil control, dryness, hydration, dullness, uneven tone, tan, sensitivity, sun protection. On the same screen: “Is any of this true for you right now?” — painful cysts, rashes, bleeding, sudden changes. If any flag is chosen, later results show a dermatologist note and no products.</li>
+  <li><span class="title">Area.</span> Face, body, or both.</li>
+  <li><span class="title">Air and sun.</span> Indoor air: humid, air-conditioning, or mixed. Time outdoors: often, sometimes, or rarely. These are a light nudge in scoring, not a hard filter.</li>
+  <li><span class="title">Budget.</span> Value (up to Rs 900), Everyday (up to Rs 1,950), or Generous (no cap). Band definitions come from the catalog.</li>
+  <li><span class="title">Optional selfie.</span> Take a photo with the device camera, or upload one. The shopper can continue without a photo. If analysis is available, the photo is sent once to the analyze API, then discarded on Shello’s side. If analysis fails, the app retries once and then uses the quiz answers, with a short note.</li>
+  <li><span class="title">Results.</span> A 2–3 step routine (Cleanse, Treat / glow, Moisturise) with size, price, a “from the product page” reason, and a shop link. A routine total. “Add all to cart” opens the Shello cart with the first product and shows follow-up links for the rest (the shop does not support adding several products in one request). “Send my routine on WhatsApp” opens a wa.me message to +94 74 116 9600, the number baked into the app.</li>
+</ol>
+<p>The interface is available in English, Sinhala, and Tamil. Product names, sizes, prices, and product-page reasons stay in English, as published on the shop. The language choice is stored in the browser (localStorage key <em>shello-lang</em>).</p>
+
+<h2>4. Functional requirements (as built)</h2>
+<ul>
+  <li>Load <em>catalog.json</em> in the browser and recommend only from its included, in-stock skin SKUs.</li>
+  <li>Run the quiz, kits, and matcher entirely in the browser, with no API key required for a quiz-only routine.</li>
+  <li>Optional selfie analysis through <em>POST /api/analyze</em>. <em>GET /api/analyze</em> reports whether analysis is configured, without exposing secrets. On 21 November 2026 the live GET returned HTTP 200 with analysis available and provider “gemini”.</li>
+  <li>Support in-page camera capture (getUserMedia) and file upload. Photos stay in memory for the request and are not written to disk, cache, or logs by this app.</li>
+  <li>Show a dermatologist-only result, with no products, when a quiz red flag is set or when selfie analysis sets <em>refer_dermatologist</em>.</li>
+  <li>Localise the chrome and quiz in English, Sinhala, and Tamil. Sinhala and Tamil still need a native-speaker proofread.</li>
+  <li>Open a shop add-to-cart URL for a single product, and a WhatsApp share of the routine.</li>
+  <li>Send page views to Vercel Web Analytics.</li>
+  <li>Refresh catalog prices and stock from the shared daily price list, and do a full shop rebuild on Sundays or when new product IDs appear.</li>
+  <li>Ship security headers, including a Content-Security-Policy, plus branded logo, favicon, apple-touch icon, Open Graph image, and theme colour <em>#01652F</em>.</li>
+</ul>
+
+<h2>5. Recommendation rules and safety</h2>
+<ul class="note-list">
+  <li><strong>Cosmetic only.</strong> Every result carries the catalog disclaimer: recommendations are cosmetic suggestions only and are not a medical diagnosis or treatment.</li>
+  <li><strong>Red flags stop the routine.</strong> Painful cysts, rashes, bleeding, sudden changes, or a selfie photo-concern flag produce a “Please see a dermatologist” message and an empty product list.</li>
+  <li><strong>In-stock face and body skin products only.</strong> The matcher reads <em>catalog.included</em> and skips anything not in stock. Hair, deodorant, hand wash, foot cream, and bundle/combo products are excluded when the catalog is built. As of the 11:35 AM catalog: 25 products excluded (hair 15, deodorant 3, hand wash 3, bundle/combo 3, foot cream 1). 68 skin SKUs included, among them 3 hand-cream SKUs — hand cream is allowed; hand wash is not.</li>
+  <li><strong>Claims only from product copy.</strong> The reason line is a sentence from the product’s short description, description, or page copy. If no sentence is found, the fallback is “As described on the product page.” The matcher does not invent ingredients, benefits, or names.</li>
+  <li><strong>Two or three steps, within budget.</strong> It tries Cleanse, then Moisturise, then Treat / glow, then sorts them into that display order. A treat step is omitted if no candidate scores high enough (this is how some body + tighter-budget routines stay at two steps). Each pick must fit the remaining budget. Value prefers the smallest affordable size; Everyday prefers a daily size of about 80–200&nbsp;ml when one fits; Generous prefers the largest affordable size.</li>
+  <li><strong>Quiz answers win.</strong> A selfie may only fill leftover concern slots, up to two concerns in total. It does not override the shopper’s skin type or chosen concerns.</li>
+  <li><strong>Climate is a nudge.</strong> Humid air slightly favours lightweight or gel products; air-conditioning slightly favours richer moisturisers. Time outdoors can boost a sunscreen — but only when the routine is not face-only, because the current catalog has no face-specific sunscreen.</li>
+  <li><strong>Some safety penalties inside scoring.</strong> Scrubs are heavily penalised for sensitive skin or a sensitivity concern, and reduced for breakouts.</li>
+</ul>
+
+<h2>6. Architecture</h2>
+<div class="arch">
+  <div class="box">
+    <h3>Browser</h3>
+    <p>Static HTML, CSS, and JavaScript. The quiz matcher and language pack run on the shopper’s device. <em>catalog.json</em> is fetched in the browser.</p>
+  </div>
+  <div class="box">
+    <h3>Vercel function</h3>
+    <p><em>/api/analyze</em> accepts an optional selfie in the request body, calls Gemini (or OpenAI if no Gemini key is set), and returns cosmetic appearance notes. The image is not stored.</p>
+  </div>
+  <div class="box">
+    <h3>Catalog pipeline</h3>
+    <p><em>build_catalog.py</em> reads the public WooCommerce Store API (read-only REST is a fallback). A daily job applies the shared shop price list, then deploys only if prices or stock changed.</p>
+  </div>
+</div>
+<p><strong>Selfie models.</strong> The function prefers a configured Gemini key, and falls back to OpenAI if that key is not set. It tries Gemini models in this order: gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemini-flash-lite-latest, gemini-3.8-flash, gemini-3.5-flash, gemini-flash-latest. If no Gemini key is set, it uses OpenAI <em>gpt-4o-mini</em>. The live GET on 21 November 2026 reported provider “gemini”; which exact model answered that day was not recorded in the GET response. This document does not include keys or environment files.</p>
+<p><strong>Daily refresh.</strong> The shared shop file <em>price-list.json</em> is refreshed at 8:00 AM Asia/Colombo. The analyzer wrapper <em>refresh_from_shared.sh</em> is meant to run after that (the README example is 8:15; the workstream scheduled it for around 8:30). On weekdays it copies prices and stock into the existing catalog and does not crawl the shop again or add new products. On Sunday, or when the shared list has product IDs not yet in the catalog, it runs a full <em>refresh_and_deploy.sh</em> rebuild so new products can be classified and given images. A 21 November 2026 dry run logged 125 shared rows, 68 included SKUs, all in stock, and no price or stock changes (shared list stamped 8:11 AM Asia/Colombo).</p>
+<p><strong>Analytics and security.</strong> Vercel Web Analytics is on the page. <em>vercel.json</em> sets Content-Security-Policy, X-Content-Type-Options, Referrer-Policy, Permissions-Policy (camera is allowed on the same origin; microphone and geolocation are not), X-Frame-Options DENY, and no-store caching on /api/*. Local development uses <em>server.py</em> on port 8765.</p>
+
+<h2>7. Branding</h2>
+<p>On 21 November 2026 the official Shello logo replaced the placeholder. Colours were sampled from the solid fills of that mark. Text contrast on the page was checked against a 4.5:1 minimum; UI contrast against a 3:1 minimum.</p>
+<table class="data compact">
+  <thead>
+    <tr><th>Token</th><th>Hex</th><th>Use</th><th>Contrast notes</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><span class="swatch" style="background:#01652F"></span>Primary / brand green</td><td>#01652F</td><td>Buttons, links, theme colour</td><td>White text 7.23:1; as text on the page 6.81:1</td></tr>
+    <tr><td><span class="swatch" style="background:#EE1C25"></span>Logo red</td><td>#EE1C25</td><td>Exact red of the mark</td><td>4.35:1 on white — below 4.5:1, so not used for labels</td></tr>
+    <tr><td><span class="swatch" style="background:#D61921"></span>Accent</td><td>#D61921</td><td>Eyebrows and step names only</td><td>A 10% darker red so labels pass 4.5:1 (4.92:1 on the page)</td></tr>
+    <tr><td><span class="swatch" style="background:#231F20"></span>Ink</td><td>#231F20</td><td>Body text</td><td>16.30:1 on white</td></tr>
+    <tr><td><span class="swatch" style="background:#F5F9F7"></span>Page background</td><td>#F5F9F7</td><td>A 4% tint of the brand green</td><td>—</td></tr>
+  </tbody>
+</table>
+<p>The header uses a compact wordmark-and-figure PNG at 52&nbsp;px tall (the tagline is already on the page as an eyebrow). The favicon is the wordmark on white. The apple-touch icon and the 1200×630 share image use the full lockup, including the tagline. Type is Fraunces for headings and Source Sans 3 for body text, with Noto Sans Sinhala and Noto Sans Tamil for those languages. Language chips use those Indic fonts at normal weight (400), after a Tamil chip at 390&nbsp;px width rendered as a blotchy blob when it inherited the English UI font at weight 600.</p>
+
+<h2>8. Hosting and domain</h2>
+<table class="data compact">
+  <thead><tr><th>Item</th><th>As built</th></tr></thead>
+  <tbody>
+    <tr><td>Production URL</td><td>https://skin.shellocosmetics.com</td></tr>
+    <tr><td>Vercel project</td><td>shello-skin-analyzer, aliased to that domain (also a vercel.app URL)</td></tr>
+    <tr><td>Plan</td><td>Vercel Hobby, as of this document. Pro is recommended, because Hobby is meant for personal, non-commercial use and this site sells.</td></tr>
+    <tr><td>Latest deploy named here</td><td>dpl_CQNKVVtcJHmxneypcpUMZ6rj5dgD</td></tr>
+    <tr><td>Shop relationship</td><td>The app only reads the public catalog. It never edits the shop CMS, products, or prices.</td></tr>
+  </tbody>
+</table>
+
+<h2>9. Privacy</h2>
+<p>The live privacy note, shown on the landing and selfie steps, is:</p>
+<div class="callout warn">
+  <div class="label">Live wording (unpaid Gemini terms)</div>
+  Shello doesn’t save your photo. If you add a selfie, it is sent once to Google’s Gemini API so we can suggest products, then discarded on our side. We don’t write it to a database or our logs. Under Google’s unpaid Gemini API terms, Google may use submitted content (including images) to improve its products, and human reviewers may see it. This is a product suggestion, not medical advice.
+</div>
+<p>As of 21 November 2026, the project was left on Google’s unpaid Gemini API terms, and this wording was still on the live site. Billing status was not re-checked at the time this document was written. If billing is turned on, this note should be updated and the app redeployed.</p>
+<p>The analyze function sets no-store headers and is written so that the photo and the API key are not included in responses or custom logs. The Content-Security-Policy limits camera use to the same origin. Shopper photos are not used to train a Shello model today.</p>
+
+<h2>10. Testing done</h2>
+<p>Recommendation <strong>accuracy has not been measured</strong> with shoppers or a dermatologist. The tests below check that the app recommends in-stock, in-budget products from allowed categories, that safety paths work, and that the site stays up under a burst.</p>
+<table class="data compact">
+  <thead><tr><th>Test</th><th>What was done</th><th>Result (21 November 2026)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Audience combinations</td>
+      <td>Every combination of 5 skin types, concerns (none, one, or two of 9), area (face, body, both), and 3 budget bands — 2,070 routines.</td>
+      <td>1,941 were 3-step; 129 were 2-step (body and a tighter budget, when no treat product fitted). 0 empty, over-budget, or bad-link routines in that run.</td>
+    </tr>
+    <tr>
+      <td>Named personas</td>
+      <td>The three personas in section 2, plus further named audiences in the health check (including red-flag and selfie dermatologist paths).</td>
+      <td>Personas passed. Any quiz red flag, or a selfie dermatologist flag, returned no products. The quiz has no men’s or pregnancy path — recorded as a note, not a failure.</td>
+    </tr>
+    <tr>
+      <td>Catalog links (persona run, 11:12 AM)</td>
+      <td>68 product links checked.</td>
+      <td>67 ok. One failure recorded: Mahoshadha Lotion 500&nbsp;ml. That check was not repeated for this document.</td>
+    </tr>
+    <tr>
+      <td>Load burst</td>
+      <td>Ramped to 1,000 concurrent visitors from one computer in 45 seconds and held for 25 seconds, loading Vercel-hosted files only (not shop product photos).</td>
+      <td>The page itself is on Vercel’s CDN and should be fine for ordinary browsing. The burst, from one computer, tripped Vercel’s security checkpoint (HTTP 403 / “Failed to verify your browser, Code 21”) on the test network. Real shoppers arrive from many phones and should not look like that burst.</td>
+    </tr>
+    <tr>
+      <td>Analyze API under load</td>
+      <td>GET /api/analyze at 200 concurrent.</td>
+      <td>5,641 requests, 0 errors, all HTTP 200. p50 0.46&nbsp;s, p95 0.53&nbsp;s, p99 1.1&nbsp;s. A small burst did not exhaust the daily Gemini quota, but free-tier selfie analysis is not expected to keep up with hundreds of photos at once. The quiz-only fallback is in place.</td>
+    </tr>
+    <tr>
+      <td>Languages</td>
+      <td>English, Sinhala, and Tamil each have the same 138 interface keys. Mobile quiz walkthroughs were captured in all three.</td>
+      <td>UI works. Native-speaker proofread is still outstanding. Tamil currently uses a word for “routine” that is closer to “case”.</td>
+    </tr>
+    <tr>
+      <td>Branding go-live (evening)</td>
+      <td>Local 390×844 and desktop checks, then production verification after deploy dpl_CQNKVVtcJHmxneypcpUMZ6rj5dgD.</td>
+      <td>Homepage HTTP 200; logo, favicon, apple-touch icon, and OG image byte-identical to the local files; theme colour #01652F; catalog loaded; English quiz reached a 3-product result; no console or CSP errors; GET /api/analyze HTTP 200.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>11. Known limits and open items for Nethmi</h2>
+<p class="small">Status as of the evening of 21 November 2026, Asia/Colombo. Shop-side items cannot be fixed in this app.</p>
+<ul class="check">
+  <li>Move the Vercel project from Hobby to Pro, because this is a commercial shop tool.<span class="tag">Open</span></li>
+  <li>Turn on Gemini billing when ready, then update the unpaid-Gemini privacy note and redeploy.<span class="tag">Open</span></li>
+  <li>In the shop: fix the Cucumber Soft Face Wash slug (<em>fairness-soft-face-wash-copy</em>). The expected /product/cucumber-soft-face-wash/ URL returned 404 in the catalog audit; the copy slug returned 200.<span class="tag">Open · shop</span></li>
+  <li>In the shop: resolve published size/copy mismatches recorded in the catalog — Massage Lotion (attributes list 125&nbsp;ml, sellable sizes 250&nbsp;ml and 500&nbsp;ml); Brightening Body Wash &amp; Scrub (250&nbsp;ml and 500&nbsp;ml listed on a simple product with one price); Fairness Soft Face Wash (copy mentions 500&nbsp;ml; in-stock SKUs are 50, 100, and 200&nbsp;ml); Fairness Cream (50&nbsp;g / 100&nbsp;g in copy vs 50&nbsp;ml / 100&nbsp;ml on SKUs); Herbal Face Scrub (ml in copy vs g on SKUs); Saffron Glow Gel (copy mentions 160&nbsp;ml; in-stock SKUs are 35&nbsp;ml and 180&nbsp;ml). The Hand Cream 35&nbsp;ml parent copy describes only the Sunset scent, not Forest or Ocean.<span class="tag">Open · shop</span></li>
+  <li>Catalog gaps the quiz cannot fill today: no face mask, no toner, and no face-specific sunscreen. Advance Sun Care Protection Lotion (SPF 20) is listed as a body lotion / sunscreen.<span class="tag">Open · shop</span></li>
+  <li>Native-speaker proofread of Sinhala and Tamil, including the Tamil word now used for “routine”, which is closer to “case”, and the later strings for selfie fallback, photo-concern, and quiz progress.<span class="tag">Open</span></li>
+  <li class="done">Official logo, brand colours, share image, and theme colour.<span class="tag">Done today</span></li>
+  <li class="done">Tamil and Sinhala language chips readable at 390&nbsp;px width.<span class="tag">Done today</span></li>
+</ul>
+<p>Other limits of the current build: “Add all to cart” can only add the first product in one request; selfie quality is not checked before upload; the shopper cannot confirm or correct what the selfie model read; visitor analytics are in the Vercel dashboard only; recommendation accuracy is not measured.</p>
+
+<h2>12. Proposed roadmap</h2>
+<p>These items are not built. They are the next steps discussed for after the current app is stable.</p>
+<ol>
+  <li><strong>Measure accuracy</strong> with 30–50 shoppers (or staff) rating whether the routine felt right, and mark this as the first real accuracy number. It is not measured yet.</li>
+  <li><strong>Photo quality guide and a retake check</strong>, so a dark, cropped, or blurry selfie is caught before it is sent.</li>
+  <li><strong>Let the shopper confirm the selfie read</strong> (skin-type hint and concerns) before it is merged into the quiz.</li>
+  <li><strong>Paid Gemini</strong>, then a revised privacy note that no longer describes unpaid-tier data use, and a higher selfie-throughput ceiling.</li>
+  <li><strong>Learn from clicks and sales</strong> — which recommended products are opened, added, or bought — without storing selfies.</li>
+  <li><strong>Fill catalog gaps</strong> in the shop (toner, face mask, face sunscreen, slug and size repairs) so the matcher has those steps to offer.</li>
+  <li><strong>A custom model only later</strong>, and only with consented, labelled data. That is not in progress and should not be started on unpaid-tier selfies.</li>
+</ol>
+
+<h2>13. Sources and method</h2>
+<div class="sources">
+<p>This PRD describes the production app as of 21 November 2026. Facts were taken from the skin-analyzer code (<em>index.html</em>, <em>css/styles.css</em>, <em>js/app.js</em>, <em>js/matcher.js</em>, <em>js/i18n.js</em>, <em>js/analytics.js</em>, <em>api/analyze.js</em>, <em>vercel.json</em>, <em>build_catalog.py</em>, <em>refresh_from_shared.sh</em>, <em>catalog.json</em>), from <em>tests/persona-report.json</em>, from the 21 November 2026 health-check and branding-go-live results, and from a live check of https://skin.shellocosmetics.com the same evening.</p>
+<p>Numbers that were not measured — including recommendation accuracy, ongoing free-tier selfie quota, and current daily visitor counts — are stated as not measured. No API keys, environment files, or other secrets are included.</p>
+</div>
+
+</body>
+</html>
