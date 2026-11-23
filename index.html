@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Shello Skin Analyzer</title>
   <meta name="description" content="A simple quiz that suggests a 2–3 step Shello Cosmetics skin routine from the live product catalog. Cosmetic suggestions only, not a diagnosis." />
-  <meta name="theme-color" content="#01652F" />
+  <meta name="theme-color" content="#FBF7F2" />
   <link rel="canonical" href="https://skin.shellocosmetics.com/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Shello Cosmetics" />
@@ -38,16 +38,27 @@
       <p class="eyebrow">Skin analyzer</p>
     </header>
 
-    <section id="intro">
+    <section id="intro" class="intro">
       <p class="eyebrow">Nature extracts + cosmetic science</p>
       <h1>Find a simple Shello routine</h1>
-      <p class="lede">Answer a few questions about your skin. We’ll suggest 2–3 in-stock products from shellocosmetics.com — with reasons taken only from each product’s own page. This is not a diagnosis.</p>
+      <p class="lede">Answer a few questions about your skin. We’ll suggest 2–3 in-stock products from shellocosmetics.com — with reasons taken only from each product’s own page.</p>
     </section>
 
-    <div class="card" id="app">
+    <main class="panel" id="app">
       <div class="progress" id="progress" aria-hidden="true"></div>
-      <div id="panel"></div>
-    </div>
+      <div id="panel" aria-live="polite">
+        <div class="skeleton-wrap" aria-busy="true">
+          <span class="visually-hidden">Loading Shello products…</span>
+          <div class="skeleton skeleton-btn"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton-row">
+            <div class="skeleton skeleton-chip"></div>
+            <div class="skeleton skeleton-chip"></div>
+            <div class="skeleton skeleton-chip"></div>
+          </div>
+        </div>
+      </div>
+    </main>
 
     <footer>
       <p>Cosmetic suggestions only. This tool does not diagnose or treat skin conditions. If you have painful cysts, a rash, bleeding, or a sudden change in your skin, please see a dermatologist. Prices are in Sri Lankan Rupees and were read from the public store catalog.</p>
@@ -56,6 +67,10 @@
 
   <script src="js/i18n.js"></script>
   <script src="js/matcher.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/face.js"></script>
+  <script src="js/quality.js"></script>
+  <script src="js/skin_reader.js"></script>
   <script src="js/app.js"></script>
   <script src="js/analytics.js"></script>
   <script defer src="/_vercel/insights/script.js"></script>

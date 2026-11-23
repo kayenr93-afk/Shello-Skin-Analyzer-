@@ -1,0 +1,10 @@
+# Evaluation harness dependencies. Pinned to exact versions released at least
+# 7 days before this file was written. Python 3.13.
+numpy==2.3.4
+pillow==11.3.0
+pandas==2.3.3
+openpyxl==3.1.5
+scikit-learn==1.7.2
+requests==2.32.5
+pytest==8.4.2
+mediapipe==1.2.3

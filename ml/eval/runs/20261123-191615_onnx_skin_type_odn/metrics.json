@@ -1,0 +1,186 @@
+{
+  "dataset_key": "skin_type_odn",
+  "date": "20261123-191615",
+  "git_dirty": true,
+  "git_sha": "4b8fb77bac65745276bcb2514865859fb2902fad+dirty",
+  "manifest": "ml\\data\\manifests\\skin_type_odn.jsonl",
+  "manifest_sha256": "5150ed46502a9b99892bb31d0c2af55371ad55f52eb36fe8664c32ad01af98db",
+  "metrics": {
+    "concerns": {
+      "covered": [
+        "breakouts",
+        "dark_spots",
+        "fine_lines",
+        "pores",
+        "redness"
+      ],
+      "per_concern": {
+        "breakouts": {
+          "n": 0
+        },
+        "dark_spots": {
+          "n": 0
+        },
+        "fine_lines": {
+          "n": 0
+        },
+        "pores": {
+          "n": 0
+        },
+        "redness": {
+          "n": 0
+        }
+      },
+      "uncovered": []
+    },
+    "latency": {
+      "client_ms": {
+        "n": 30,
+        "p50": 5782.549999999999,
+        "p95": 16743.65999999998,
+        "p99": 53999.91600000004
+      },
+      "server_ms": null
+    },
+    "n_total": 30,
+    "skin_type": {
+      "accuracy": 0.26666666666666666,
+      "accuracy_ci95": [
+        0.1,
+        0.43333333333333335
+      ],
+      "accuracy_on_answered": 0.3333333333333333,
+      "confusion": {
+        "cols_predicted": [
+          "oily",
+          "dry",
+          "normal",
+          "combination",
+          "sensitive",
+          "abstain"
+        ],
+        "matrix": [
+          [
+            1,
+            1,
+            5,
+            0,
+            0,
+            3
+          ],
+          [
+            4,
+            0,
+            3,
+            0,
+            0,
+            3
+          ],
+          [
+            4,
+            2,
+            4,
+            0,
+            0,
+            0
+          ]
+        ],
+        "note": "Truth is 3-class (oily/dry/normal); predicted combination/sensitive always counts as wrong. Abstain counts as wrong.",
+        "rows_truth": [
+          "dry",
+          "normal",
+          "oily"
+        ]
+      },
+      "coverage": 0.8,
+      "macro_f1": 0.28254201938412465,
+      "n": 30,
+      "per_class": {
+        "dry": {
+          "f1": 0.15384615384615385,
+          "precision": 0.3333333333333333,
+          "recall": 0.1,
+          "support": 10
+        },
+        "normal": {
+          "f1": 0.2727272727272727,
+          "precision": 0.25,
+          "recall": 0.3,
+          "support": 10
+        },
+        "oily": {
+          "f1": 0.42105263157894735,
+          "precision": 0.4444444444444444,
+          "recall": 0.4,
+          "support": 10
+        }
+      }
+    },
+    "tone": {
+      "gap_lighter_minus_darker": {
+        "ci95": [
+          -0.40271493212669685,
+          0.25791855203619907
+        ],
+        "gap": -0.07239819004524889,
+        "insufficient_n": true,
+        "n_darker": 13,
+        "n_lighter": 17
+      },
+      "per_ita_group6": {
+        "brown": {
+          "accuracy": 0.42857142857142855,
+          "insufficient_n": true,
+          "n": 7
+        },
+        "dark": {
+          "accuracy": 0.0,
+          "insufficient_n": true,
+          "n": 1
+        },
+        "intermediate": {
+          "accuracy": 0.0,
+          "insufficient_n": true,
+          "n": 5
+        },
+        "light": {
+          "accuracy": 0.375,
+          "insufficient_n": true,
+          "n": 8
+        },
+        "tan": {
+          "accuracy": 0.2,
+          "insufficient_n": true,
+          "n": 5
+        },
+        "very_light": {
+          "accuracy": 0.25,
+          "insufficient_n": true,
+          "n": 4
+        }
+      },
+      "per_tone_group2": {
+        "darker": {
+          "accuracy": 0.3076923076923077,
+          "insufficient_n": true,
+          "n": 13
+        },
+        "lighter": {
+          "accuracy": 0.23529411764705882,
+          "insufficient_n": true,
+          "n": 17
+        }
+      }
+    }
+  },
+  "models_seen": [
+    "sr-smoke"
+  ],
+  "prompt_versions": [],
+  "reader": "onnx",
+  "reader_version": "sr-smoke",
+  "run_id": "20261123-191615_onnx_skin_type_odn",
+  "seed": 0,
+  "split": "test",
+  "tone_source": "center_crop"
+}

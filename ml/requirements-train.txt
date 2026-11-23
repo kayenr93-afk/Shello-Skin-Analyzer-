@@ -1,0 +1,10 @@
+# Phase 2B training dependencies. Pinned to versions released >=7 days ago.
+# Install with:
+#   ml\.venv\Scripts\pip install -r ml/requirements-train.txt --index-url https://download.pytorch.org/whl/cu128 --extra-index-url https://pypi.org/simple
+# (torch/torchvision +cu128 wheels come from the PyTorch index; the rest from PyPI.)
+torch==2.11.0+cu128
+torchvision==0.26.0+cu128
+timm==1.0.31
+onnx==1.23.2
+onnxruntime==1.32.0
+onnxscript==0.7.2

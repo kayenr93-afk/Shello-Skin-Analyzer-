@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "face": {
+    "required_count": 1,
+    "min_height_frac_of_short_side": 0.30,
+    "min_height_px": 180
+  },
+  "exposure": {
+    "face_luma_min": 40,
+    "image_luma_min": 50,
+    "bright_pixel_luma": 250,
+    "bright_pixel_frac_max": 0.05
+  },
+  "sharpness": {
+    "resize_width": 256,
+    "laplacian_var_min": 40
+  }
+}

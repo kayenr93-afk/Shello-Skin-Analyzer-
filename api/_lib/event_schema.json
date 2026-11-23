@@ -1,0 +1,94 @@
+{
+  "max_body_bytes": 4096,
+  "max_string_chars": 64,
+  "max_array_items": 10,
+  "forbidden_string_regex": "^data:|base64|[A-Za-z0-9+/]{80,}",
+  "types": {
+    "session_result": {
+      "required": ["lang", "result_source", "dermatologist_note"],
+      "fields": {
+        "lang": { "t": "str" },
+        "result_source": { "t": "str", "enum": ["quiz", "kit"] },
+        "kit_id": { "t": "str" },
+        "quiz": {
+          "t": "obj",
+          "fields": {
+            "skin_type": { "t": "str" },
+            "concerns": { "t": "str[]" },
+            "area": { "t": "str" },
+            "budget": { "t": "str" },
+            "climate": { "t": "str" },
+            "outdoors": { "t": "str" },
+            "red_flags": { "t": "str[]" }
+          }
+        },
+        "merged_concerns": { "t": "str[]" },
+        "reader": {
+          "t": "obj",
+          "fields": {
+            "source": { "t": "str", "enum": ["gemini", "openai", "device", "none"] },
+            "fallback_reason": { "t": "str", "enum": ["low_confidence", "device_failed"] },
+            "device_confidence": { "t": "num" },
+            "provider": { "t": "str" },
+            "model": { "t": "str" },
+            "prompt_version": { "t": "str" },
+            "skin_type": { "t": "str" },
+            "concerns": { "t": "str[]" },
+            "confidence": { "t": "str" },
+            "latency_ms": { "t": "num" }
+          }
+        },
+        "quality": {
+          "t": "obj",
+          "fields": {
+            "ran": { "t": "bool" },
+            "pass": { "t": "bool" },
+            "reasons": { "t": "str[]" },
+            "retakes": { "t": "num" },
+            "face_check": { "t": "str" }
+          }
+        },
+        "confirm": {
+          "t": "obj",
+          "fields": {
+            "action": { "t": "str", "enum": ["confirm", "correct", "skipped"] },
+            "read_skin_type": { "t": "str" },
+            "read_concerns": { "t": "str[]" },
+            "corrected_skin_type": { "t": "str" },
+            "corrected_concerns": { "t": "str[]" }
+          }
+        },
+        "routine_product_ids": { "t": "int[]" },
+        "dermatologist_note": { "t": "bool" }
+      }
+    },
+    "step_view": {
+      "required": ["step"],
+      "fields": {
+        "step": { "t": "str", "enum": ["landing", "skin", "concerns", "safety", "area", "climate", "budget", "scan", "confirm", "result"] }
+      }
+    },
+    "product_feedback": {
+      "required": ["product_id", "value"],
+      "fields": {
+        "product_id": { "t": "int" },
+        "value": { "t": "str", "enum": ["up", "down"] }
+      }
+    },
+    "click": {
+      "required": ["kind"],
+      "fields": {
+        "product_id": { "t": "int" },
+        "kind": { "t": "str", "enum": ["view_product", "whatsapp"] }
+      }
+    },
+    "add_to_cart": {
+      "required": ["product_ids", "kind", "source"],
+      "fields": {
+        "product_ids": { "t": "int[]" },
+        "kind": { "t": "str", "enum": ["add_all", "add_item"] },
+        "source": { "t": "str", "enum": ["quiz", "kit"] }
+      }
+    }
+  }
+}

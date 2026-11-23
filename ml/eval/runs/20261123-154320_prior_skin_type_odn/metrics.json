@@ -1,0 +1,164 @@
+{
+  "dataset_key": "skin_type_odn",
+  "date": "20261123-154320",
+  "git_dirty": true,
+  "git_sha": "4b8fb77bac65745276bcb2514865859fb2902fad+dirty",
+  "manifest": "ml\\data\\manifests\\skin_type_odn.jsonl",
+  "manifest_sha256": "aef6e76ed3e987fc367354aeca3d3ab6df86e8f827013583a7165de86e807fcc",
+  "metrics": {
+    "concerns": {
+      "covered": [],
+      "per_concern": {},
+      "uncovered": [
+        "breakouts",
+        "redness",
+        "dark_spots",
+        "pores",
+        "fine_lines"
+      ]
+    },
+    "latency": {
+      "client_ms": null,
+      "server_ms": null
+    },
+    "n_total": 490,
+    "skin_type": {
+      "accuracy": 0.40408163265306124,
+      "accuracy_ci95": [
+        0.36122448979591837,
+        0.4489795918367347
+      ],
+      "accuracy_on_answered": 0.40408163265306124,
+      "confusion": {
+        "cols_predicted": [
+          "oily",
+          "dry",
+          "normal",
+          "combination",
+          "sensitive",
+          "abstain"
+        ],
+        "matrix": [
+          [
+            0,
+            0,
+            127,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            198,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            165,
+            0,
+            0,
+            0
+          ]
+        ],
+        "note": "Truth is 3-class (oily/dry/normal); predicted combination/sensitive always counts as wrong. Abstain counts as wrong.",
+        "rows_truth": [
+          "dry",
+          "normal",
+          "oily"
+        ]
+      },
+      "coverage": 1.0,
+      "macro_f1": 0.19186046511627908,
+      "n": 490,
+      "per_class": {
+        "dry": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 127
+        },
+        "normal": {
+          "f1": 0.5755813953488372,
+          "precision": 0.40408163265306124,
+          "recall": 1.0,
+          "support": 198
+        },
+        "oily": {
+          "f1": 0.0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "support": 165
+        }
+      }
+    },
+    "tone": {
+      "gap_lighter_minus_darker": {
+        "ci95": [
+          -0.10003190926827493,
+          0.07530951990226643
+        ],
+        "gap": -0.012800175045128814,
+        "insufficient_n": false,
+        "n_darker": 181,
+        "n_lighter": 303
+      },
+      "per_ita_group6": {
+        "brown": {
+          "accuracy": 0.4431818181818182,
+          "insufficient_n": false,
+          "n": 88
+        },
+        "dark": {
+          "accuracy": 0.4444444444444444,
+          "insufficient_n": true,
+          "n": 27
+        },
+        "intermediate": {
+          "accuracy": 0.4567901234567901,
+          "insufficient_n": false,
+          "n": 81
+        },
+        "light": {
+          "accuracy": 0.4791666666666667,
+          "insufficient_n": false,
+          "n": 96
+        },
+        "tan": {
+          "accuracy": 0.3484848484848485,
+          "insufficient_n": false,
+          "n": 66
+        },
+        "very_light": {
+          "accuracy": 0.29365079365079366,
+          "insufficient_n": false,
+          "n": 126
+        }
+      },
+      "per_tone_group2": {
+        "darker": {
+          "accuracy": 0.4088397790055249,
+          "insufficient_n": false,
+          "n": 181
+        },
+        "lighter": {
+          "accuracy": 0.39603960396039606,
+          "insufficient_n": false,
+          "n": 303
+        }
+      }
+    }
+  },
+  "models_seen": [
+    "majority"
+  ],
+  "prompt_versions": [],
+  "reader": "prior",
+  "reader_version": "1",
+  "run_id": "20261123-154320_prior_skin_type_odn",
+  "seed": 0,
+  "split": "test"
+}

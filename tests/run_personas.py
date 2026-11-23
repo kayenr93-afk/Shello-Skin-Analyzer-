@@ -148,11 +148,14 @@ def run_persona(page, persona, width=430, height=900):
     # Step 1 skin type
     choose(page, "#opts", quiz["skin_type"])
     page.locator("#btn-next").click()
-    # Step 2 concerns + flags (max two concerns)
+    # Step 2 concerns (max two)
     page.wait_for_selector("#opts")
     for cid in (quiz["concerns"] or [])[:2]:
         choose(page, "#opts", cid)
-    for fid in quiz.get("red_flags") or []:
+    page.locator("#btn-next").click()
+    # Step 3 safety check (its own step; "none" when no flags)
+    page.wait_for_selector("#flags")
+    for fid in quiz.get("red_flags") or ["none"]:
         choose(page, "#flags", fid)
     page.locator("#btn-next").click()
     # Step 3 area

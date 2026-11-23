@@ -21,6 +21,12 @@ const GEMINI_MODELS = [
 
 const OPENAI_MODEL = "gpt-4o-mini";
 
+const PROMPT_VERSION = "2026-11-21";
+
+// API base overrides exist only so tests can point at a local stub.
+const GEMINI_API_BASE = (process.env.GEMINI_API_BASE || "https://generativelanguage.googleapis.com").replace(/\/+$/, "");
+const OPENAI_API_BASE = (process.env.OPENAI_API_BASE || "https://api.openai.com").replace(/\/+$/, "");
+
 const SYSTEM_PROMPT = `You are a cosmetic skin-care assistant for Shello Cosmetics.
 You look at an optional selfie and return JSON only.
 
@@ -53,6 +59,7 @@ function availability() {
     ok: true,
     analysis_available: gemini || openai,
     provider: gemini ? "gemini" : openai ? "openai" : null,
+    device_reader_pct: Math.max(0, Math.min(100, parseInt(process.env.DEVICE_READER_PCT || "0", 10) || 0)),
     message: gemini || openai
       ? "Optional selfie analysis is available. Shello does not store photos."
       : "Selfie analysis is not configured. Your quiz answers will still be used to build a routine.",
@@ -136,7 +143,7 @@ async function analyzeWithGemini(b64, mime) {
   const key = process.env.GEMINI_API_KEY.trim();
   let lastError = null;
   for (const model of GEMINI_MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+    const url = `${GEMINI_API_BASE}/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
     const payload = {
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [
@@ -186,7 +193,7 @@ async function analyzeWithGemini(b64, mime) {
 
 async function analyzeWithOpenAI(b64, mime) {
   const key = process.env.OPENAI_API_KEY.trim();
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+  const resp = await fetch(`${OPENAI_API_BASE}/v1/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${key}`,
@@ -285,6 +292,7 @@ module.exports = async function handler(req, res) {
 
   try {
     let result;
+    const started = Date.now();
     if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()) {
       result = await analyzeWithGemini(b64, mime);
     } else {
@@ -295,15 +303,26 @@ module.exports = async function handler(req, res) {
       analysis_available: true,
       provider: result.provider,
       model: result.model,
+      prompt_version: PROMPT_VERSION,
+      latency_ms: Date.now() - started,
       observations: result.observations,
       message: "Cosmetic appearance notes only — not a diagnosis. Shello does not store the photo.",
     });
   } catch (err) {
     // Never include the image or key in the response or a custom log.
+    const msg = String((err && (err.name || "") + " " + (err.message || "")) || "");
+    const error_kind = /timeout|timed out|abort/i.test(msg)
+      ? "timeout"
+      : /parse|json/i.test(msg)
+        ? "parse"
+        : "provider_error";
     res.status(200).json({
       ok: true,
       analysis_available: true,
       provider: available.provider,
+      model: null,
+      prompt_version: PROMPT_VERSION,
+      error_kind,
       observations: null,
       message:
         "Selfie analysis could not be completed just now. Your quiz answers will still be used to build a routine.",

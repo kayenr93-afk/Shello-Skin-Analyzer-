@@ -1,0 +1,43 @@
+{
+  "comment": "Shared geometry for the skin reader. Landmark indices follow the MediaPipe 478-point face mesh (canonical face geometry). Units: normalized image coords; patch offsets are in face-height units (+y = down); patch sides are fractions of face width.",
+  "polygons": {
+    "left_eye": [33, 246, 161, 160, 159, 158, 157, 173, 133, 155, 154, 153, 145, 144, 163, 7],
+    "right_eye": [362, 398, 384, 385, 386, 387, 388, 466, 263, 249, 390, 373, 374, 380, 381, 382],
+    "left_brow": [70, 63, 105, 66, 107, 55, 65, 52, 53, 46],
+    "right_brow": [300, 293, 334, 296, 336, 285, 295, 282, 283, 276],
+    "outer_lips": [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146]
+  },
+  "convex_hull_features": ["left_brow", "right_brow"],
+  "mask_dilate_frac": 0.03,
+  "face_oval": [
+    10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
+    397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
+    172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
+  ],
+  "skin_mask": {
+    "include": "face_oval",
+    "exclude": ["left_eye", "right_eye", "left_brow", "right_brow", "outer_lips"]
+  },
+  "crop": {
+    "expand_frac": 0.10,
+    "square": true,
+    "output_size": 224,
+    "mask_fill_rgb": [124, 116, 104]
+  },
+  "patches": {
+    "forehead": { "center": 151, "offset_y_face_h": -0.05, "side_frac": 0.22 },
+    "left_cheek": { "centroid_of": [117, 118, 119, 123, 50], "offset_x_face_w": 0.03, "offset_y_face_h": 0.0, "side_frac": 0.22 },
+    "right_cheek": { "centroid_of": [346, 347, 348, 352, 280], "offset_x_face_w": -0.03, "offset_y_face_h": 0.0, "side_frac": 0.22 },
+    "nose": { "center": 4, "offset_y_face_h": 0.0, "side_frac": 0.22 },
+    "chin": { "center": 152, "offset_y_face_h": -0.08, "side_frac": 0.22 }
+  },
+  "patch_validity": {
+    "min_skin_fraction": 0.8,
+    "must_fit_inside_image": true
+  },
+  "partial_face": {
+    "crop_clip_frac": 0.05,
+    "min_skin_fraction_of_crop": 0.35
+  },
+  "patch_output_size": 224
+}
